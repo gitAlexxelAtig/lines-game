@@ -832,6 +832,31 @@ class HorseRenderer {
         }
     }
 
+    // 使用预先保存的颜色创建消除粒子（解决时序问题）
+    createEliminationParticlesWithColors(positions, colors) {
+        for (let idx = 0; idx < positions.length; idx++) {
+            const pos = positions[idx];
+            const colorValue = colors[idx] || CellColor.RED;
+            const x = pos.col * this.cellSize + this.cellSize / 2;
+            const y = pos.row * this.cellSize + this.cellSize / 2;
+            const color = COLOR_PALETTE[colorValue] || '#fff';
+            
+            for (let i = 0; i < 8; i++) {
+                const angle = (Math.PI * 2 * i) / 8;
+                const speed = 3 + Math.random() * 2;
+                this.particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1,
+                    color,
+                    size: 4 + Math.random() * 4
+                });
+            }
+        }
+    }
+
     createSpawnParticles(positions, color) {
         for (const pos of positions) {
             const x = pos.col * this.cellSize + this.cellSize / 2;
@@ -925,6 +950,20 @@ class HorseRenderer {
         
         const { from, to, path, color, easedProgress } = this.movingHorse;
         
+        // 处理单点路径情况
+        if (path.length <= 1) {
+            const pos = path[0] || from;
+            const x = pos.col * this.cellSize + this.cellSize / 2;
+            const y = pos.row * this.cellSize + this.cellSize / 2;
+            const size = this.cellSize * 0.35;
+            
+            this.ctx.save();
+            this.ctx.translate(x, y);
+            this.drawHorseByColor(color, size);
+            this.ctx.restore();
+            return;
+        }
+        
         // 计算当前位置
         const pathIndex = Math.floor(easedProgress * (path.length - 1));
         const nextIndex = Math.min(pathIndex + 1, path.length - 1);
@@ -951,6 +990,13 @@ class HorseRenderer {
         }
         
         // 绘制马
+        this.drawHorseByColor(color, size);
+        
+        this.ctx.restore();
+    }
+    
+    // 根据颜色绘制对应的马
+    drawHorseByColor(color, size) {
         switch(color) {
             case CellColor.RED:
                 this.drawRedHorse(size);
@@ -974,8 +1020,6 @@ class HorseRenderer {
                 this.drawCyanHorse(size);
                 break;
         }
-        
-        this.ctx.restore();
     }
 
     lightenColor(color, percent) {
@@ -1079,10 +1123,11 @@ class GameController {
             // 执行移动动画
             this.renderer.animateMove(from, to, path, color, () => {
                 // 动画完成后执行逻辑
-                const result = this.completeMove(to);
+                const result = this.completeMove(to, color);
                 
                 if (result.eliminated) {
-                    this.renderer.createEliminationParticles(result.eliminated);
+                    // 使用预先保存的颜色创建粒子
+                    this.renderer.createEliminationParticlesWithColors(result.eliminated, result.eliminatedColors);
                 }
                 if (result.newBalls) {
                     this.renderer.createSpawnParticles(result.newBalls);
@@ -1105,10 +1150,20 @@ class GameController {
     }
     
     // 完成移动后的逻辑
-    completeMove(targetPos) {
+    completeMove(targetPos, color) {
         const lines = this.game.checkLines(targetPos);
         
         if (lines.length > 0) {
+            // 有消除，先记录要消除的位置和颜色（用于粒子效果）
+            const eliminatedPositions = [];
+            const eliminatedColors = [];
+            for (const line of lines) {
+                for (const pos of line) {
+                    eliminatedPositions.push({...pos});
+                    eliminatedColors.push(this.game.state.board[pos.row][pos.col]);
+                }
+            }
+            
             const eliminated = this.game.eliminateBalls(lines);
             this.game.state.score += this.game.calculateScore(eliminated.length);
             
@@ -1118,9 +1173,11 @@ class GameController {
             
             return {
                 eliminated,
+                eliminatedColors,
                 score: this.game.state.score
             };
         } else {
+            // 无消除，生成新球
             const newBalls = this.game.spawnBalls();
             
             if (this.game.checkGameOver()) {
