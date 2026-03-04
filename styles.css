@@ -7,8 +7,11 @@
 }
 
 body {
-    font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(180deg, #1a0f0a 0%, #2d1f16 50%, #1a0f0a 100%);
+    font-family: 'Noto Serif SC', 'Microsoft YaHei', serif;
+    background: 
+        radial-gradient(ellipse at 20% 20%, rgba(139, 69, 19, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(160, 82, 45, 0.3) 0%, transparent 50%),
+        linear-gradient(180deg, #1a0f0a 0%, #2d1f16 50%, #1a0f0a 100%);
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -68,7 +71,7 @@ body {
     text-shadow: 
         0 2px 4px rgba(0, 0, 0, 0.8),
         0 0 20px rgba(255, 215, 0, 0.3);
-    font-family: 'STKaiti', 'KaiTi', serif;
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', cursive;
     letter-spacing: 4px;
 }
 
@@ -157,7 +160,7 @@ body {
     transform: scale(1.1);
 }
 
-/* 控制按钮 - 古风按钮 */
+/* 控制按钮 - 古风拟物按钮 */
 .controls {
     display: flex;
     justify-content: center;
@@ -171,45 +174,73 @@ body {
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     background: linear-gradient(180deg, #8b4513 0%, #654321 100%);
     color: #ffd700;
     border: 2px solid #d4af37;
     box-shadow: 
-        0 4px 15px rgba(0, 0, 0, 0.3),
-        inset 0 1px 2px rgba(255, 255, 255, 0.1);
+        0 4px 0 #3d2817,
+        0 5px 10px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
     min-width: 100px;
-    font-family: 'STKaiti', 'KaiTi', serif;
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', cursive;
     letter-spacing: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn:hover::before {
+    left: 100%;
 }
 
 .btn:hover {
     background: linear-gradient(180deg, #a0522d 0%, #8b4513 100%);
     transform: translateY(-2px);
     box-shadow: 
-        0 6px 20px rgba(0, 0, 0, 0.4),
-        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+        0 6px 0 #3d2817,
+        0 8px 15px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transform: translateY(2px);
+    box-shadow: 
+        0 2px 0 #3d2817,
+        0 3px 6px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     transform: none;
+    box-shadow: 0 2px 0 #3d2817;
 }
 
 .btn.primary {
     background: linear-gradient(180deg, #d4af37 0%, #b8860b 100%);
     color: #3d2817;
     border-color: #ffd700;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .btn.primary:hover {
     background: linear-gradient(180deg, #ffd700 0%, #d4af37 100%);
+}
+
+.btn.primary:active {
+    background: linear-gradient(180deg, #b8860b 0%, #d4af37 100%);
 }
 
 /* 游戏结束弹窗 - 古风卷轴 */

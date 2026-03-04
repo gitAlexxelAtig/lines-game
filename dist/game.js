@@ -490,6 +490,7 @@ class GameRenderer {
             ? ['#1a1a2e', '#16213e', '#0f3460']
             : ['#2d3436', '#3d3d3d', '#2d3436'];
             
+        // 基础渐变
         const grad = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
         grad.addColorStop(0, colors[0]);
         grad.addColorStop(0.5, colors[1]);
@@ -498,9 +499,75 @@ class GameRenderer {
         this.ctx.fillStyle = grad;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // 木纹纹理效果
+        if (this.currentSkin === 'horse') {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.03;
+            this.ctx.strokeStyle = '#8b4513';
+            this.ctx.lineWidth = 2;
+            
+            for (let i = 0; i < this.canvas.width; i += 20) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(i, 0);
+                // 波浪线模拟木纹
+                for (let y = 0; y < this.canvas.height; y += 10) {
+                    this.ctx.lineTo(
+                        i + Math.sin(y * 0.02 + i * 0.01) * 3,
+                        y
+                    );
+                }
+                this.ctx.stroke();
+            }
+            this.ctx.restore();
+            
+            // 内阴影效果
+            const shadowGrad = this.ctx.createRadialGradient(
+                this.canvas.width / 2, this.canvas.height / 2, 0,
+                this.canvas.width / 2, this.canvas.height / 2, this.canvas.width * 0.7
+            );
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            shadowGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
+            this.ctx.fillStyle = shadowGrad;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+        
+        // 边框
         this.ctx.strokeStyle = this.currentSkin === 'classic' ? '#667eea' : '#d4af37';
         this.ctx.lineWidth = 4;
         this.ctx.strokeRect(2, 2, this.canvas.width - 4, this.canvas.height - 4);
+        
+        // 角落装饰
+        if (this.currentSkin === 'horse') {
+            this.drawCornerDecorations();
+        }
+    }
+
+    drawCornerDecorations() {
+        const size = 20;
+        const color = '#d4af37';
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 3;
+        
+        // 左上角
+        this.drawCorner(6, 6, size, 0);
+        // 右上角
+        this.drawCorner(this.canvas.width - 6, 6, size, Math.PI / 2);
+        // 右下角
+        this.drawCorner(this.canvas.width - 6, this.canvas.height - 6, size, Math.PI);
+        // 左下角
+        this.drawCorner(6, this.canvas.height - 6, size, -Math.PI / 2);
+    }
+
+    drawCorner(x, y, size, rotation) {
+        this.ctx.save();
+        this.ctx.translate(x, y);
+        this.ctx.rotate(rotation);
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -size);
+        this.ctx.lineTo(0, 0);
+        this.ctx.lineTo(size, 0);
+        this.ctx.stroke();
+        this.ctx.restore();
     }
 
     drawGrid() {
@@ -703,12 +770,44 @@ class GameRenderer {
     drawParticles() {
         for (const p of this.particles) {
             this.ctx.globalAlpha = p.life;
-            this.ctx.fillStyle = p.color;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-            this.ctx.fill();
+            
+            if (p.type === 'sparkle') {
+                // 绘制闪光星星
+                this.drawStar(p.x, p.y, 4, p.size * p.life, p.size * 0.4 * p.life);
+                this.ctx.fillStyle = p.color;
+                this.ctx.fill();
+            } else {
+                // 普通圆形粒子
+                this.ctx.fillStyle = p.color;
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
         }
         this.ctx.globalAlpha = 1;
+    }
+    
+    drawStar(cx, cy, spikes, outerRadius, innerRadius) {
+        let rot = Math.PI / 2 * 3;
+        let x = cx;
+        let y = cy;
+        const step = Math.PI / spikes;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, cy - outerRadius);
+        for (let i = 0; i < spikes; i++) {
+            x = cx + Math.cos(rot) * outerRadius;
+            y = cy + Math.sin(rot) * outerRadius;
+            this.ctx.lineTo(x, y);
+            rot += step;
+
+            x = cx + Math.cos(rot) * innerRadius;
+            y = cy + Math.sin(rot) * innerRadius;
+            this.ctx.lineTo(x, y);
+            rot += step;
+        }
+        this.ctx.lineTo(cx, cy - outerRadius);
+        this.ctx.closePath();
     }
 
     selectPiece(pos) {
@@ -743,18 +842,42 @@ class GameRenderer {
             const x = pos.col * this.cellSize + this.cellSize / 2;
             const y = pos.row * this.cellSize + this.cellSize / 2;
             
-            for (let j = 0; j < 8; j++) {
-                const angle = (Math.PI * 2 * j) / 8;
-                const speed = 3 + Math.random() * 2;
+            // 爆炸粒子
+            for (let j = 0; j < 12; j++) {
+                const angle = (Math.PI * 2 * j) / 12 + Math.random() * 0.5;
+                const speed = 4 + Math.random() * 3;
                 this.particles.push({
                     x, y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     life: 1,
                     color,
-                    size: 4 + Math.random() * 4
+                    size: 5 + Math.random() * 5,
+                    type: 'explosion'
                 });
             }
+            
+            // 闪光星星
+            for (let j = 0; j < 4; j++) {
+                const angle = (Math.PI * 2 * j) / 4;
+                this.particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * 2,
+                    vy: Math.sin(angle) * 2,
+                    life: 0.8,
+                    color: '#ffffff',
+                    size: 8,
+                    type: 'sparkle'
+                });
+            }
+        }
+        
+        // 屏幕震动效果（通过CSS）
+        if (this.canvas) {
+            this.canvas.style.transform = 'scale(1.02)';
+            setTimeout(() => {
+                this.canvas.style.transform = 'scale(1)';
+            }, 100);
         }
     }
 
