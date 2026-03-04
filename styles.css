@@ -407,6 +407,30 @@ body {
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
 }
 
+.skin-preview.smiley {
+    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+    position: relative;
+}
+
+.skin-preview.smiley::before,
+.skin-preview.smiley::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #000;
+    border-radius: 50%;
+    top: 35%;
+}
+
+.skin-preview.smiley::before {
+    left: 30%;
+}
+
+.skin-preview.smiley::after {
+    right: 30%;
+}
+
 .skin-name {
     font-size: 14px;
     font-weight: 600;

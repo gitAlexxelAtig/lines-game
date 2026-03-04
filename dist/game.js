@@ -775,6 +775,8 @@ class GameRenderer {
         
         if (this.currentSkin === 'classic') {
             this.drawClassicBall(color, size);
+        } else if (this.currentSkin === 'smiley') {
+            this.drawSmiley(color, size);
         } else {
             this.drawHorse(color, size);
         }
@@ -798,20 +800,6 @@ class GameRenderer {
     drawClassicBall(color, size) {
         const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
         const c = palette[color - 1] || '#666';
-        
-        // 白色球特殊效果 - 彩虹光环
-        if (color === CellColor.WHITE) {
-            // 绘制彩虹光环
-            const rainbow = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
-            for (let i = 0; i < rainbow.length; i++) {
-                this.ctx.shadowColor = rainbow[i];
-                this.ctx.shadowBlur = 20 + i * 2;
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, size + i * 2, 0, Math.PI * 2);
-                this.ctx.stroke();
-            }
-            this.ctx.shadowBlur = 0;
-        }
         
         this.ctx.shadowColor = c;
         this.ctx.shadowBlur = 15;
@@ -843,21 +831,6 @@ class GameRenderer {
     drawHorse(color, size) {
         const colors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c', '#95a5a6', '#ffffff'];
         const bodyColor = colors[color - 1] || '#666';
-        
-        // 白色马特殊效果 - 彩虹光环
-        if (color === CellColor.WHITE) {
-            const rainbow = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
-            for (let i = 0; i < rainbow.length; i++) {
-                this.ctx.shadowColor = rainbow[i];
-                this.ctx.shadowBlur = 20 + i * 2;
-                this.ctx.strokeStyle = rainbow[i];
-                this.ctx.lineWidth = 2;
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, size * 1.2 + i * 3, 0, Math.PI * 2);
-                this.ctx.stroke();
-            }
-            this.ctx.shadowBlur = 0;
-        }
         
         // 身体
         const grad = this.ctx.createRadialGradient(-size * 0.2, -size * 0.2, 0, 0, 0, size);
@@ -916,6 +889,150 @@ class GameRenderer {
         }
     }
 
+    // 表情类型数组
+    getSmileyType(row, col, color) {
+        // 白色球固定用星星眼
+        if (color === CellColor.WHITE) return 'star';
+        // 其他球根据位置生成固定表情（保证同一位置表情不变）
+        const types = ['smile', 'laugh', 'wink', 'cool', 'yum', 'think'];
+        const index = (row * 9 + col) % types.length;
+        return types[index];
+    }
+
+    drawSmiley(color, size) {
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
+        const c = palette[color - 1] || '#666';
+        
+        // 绘制球体背景
+        this.ctx.shadowColor = c;
+        this.ctx.shadowBlur = 15;
+        
+        const grad = this.ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.5, c);
+        grad.addColorStop(1, this.darken(c, 30));
+        
+        this.ctx.fillStyle = grad;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.shadowBlur = 0;
+        
+        // 绘制眼睛（所有表情都有）
+        const eyeY = -size * 0.15;
+        const eyeOffset = size * 0.25;
+        const eyeSize = size * 0.12;
+        
+        // 获取当前球的表情类型
+        // 注意：这里需要传入row,col，但在drawPiece中没有传递
+        // 简化：随机但不频繁变化，用颜色+固定种子
+        const types = ['smile', 'laugh', 'wink', 'cool', 'yum', 'think'];
+        const type = color === CellColor.WHITE ? 'star' : types[color % types.length];
+        
+        // 绘制眼睛
+        if (type === 'wink') {
+            // 左眼 wink
+            this.ctx.fillStyle = '#000';
+            this.ctx.beginPath();
+            this.ctx.arc(-eyeOffset, eyeY, eyeSize * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+            // 右眼睁开
+            this.ctx.beginPath();
+            this.ctx.arc(eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        } else if (type === 'cool') {
+            // 墨镜
+            this.ctx.fillStyle = '#000';
+            this.ctx.beginPath();
+            this.ctx.rect(-eyeOffset - eyeSize, eyeY - eyeSize * 0.5, eyeSize * 2, eyeSize);
+            this.ctx.rect(eyeOffset - eyeSize, eyeY - eyeSize * 0.5, eyeSize * 2, eyeSize);
+            this.ctx.fill();
+            // 镜框连接
+            this.ctx.beginPath();
+            this.ctx.moveTo(-eyeOffset + eyeSize, eyeY);
+            this.ctx.lineTo(eyeOffset - eyeSize, eyeY);
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+        } else if (type === 'star') {
+            // 星星眼（金色）
+            this.ctx.fillStyle = '#ffd700';
+            this.drawStar(-eyeOffset, eyeY, 5, eyeSize, eyeSize * 0.4);
+            this.ctx.fill();
+            this.drawStar(eyeOffset, eyeY, 5, eyeSize, eyeSize * 0.4);
+            this.ctx.fill();
+        } else {
+            // 普通圆眼睛
+            this.ctx.fillStyle = '#000';
+            this.ctx.beginPath();
+            this.ctx.arc(-eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+            this.ctx.arc(eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+            this.ctx.fill();
+            // 高光
+            this.ctx.fillStyle = '#fff';
+            this.ctx.beginPath();
+            this.ctx.arc(-eyeOffset + eyeSize * 0.3, eyeY - eyeSize * 0.3, eyeSize * 0.3, 0, Math.PI * 2);
+            this.ctx.arc(eyeOffset + eyeSize * 0.3, eyeY - eyeSize * 0.3, eyeSize * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        // 绘制嘴巴
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = size * 0.08;
+        this.ctx.lineCap = 'round';
+        
+        const mouthY = size * 0.25;
+        const mouthW = size * 0.5;
+        
+        switch(type) {
+            case 'smile':
+                // 微笑弧线
+                this.ctx.beginPath();
+                this.ctx.arc(0, mouthY - size * 0.1, mouthW * 0.5, 0.2, Math.PI - 0.2);
+                this.ctx.stroke();
+                break;
+            case 'laugh':
+            case 'star':
+                // 大笑（大弧线）
+                this.ctx.beginPath();
+                this.ctx.arc(0, mouthY - size * 0.2, mouthW * 0.6, 0.1, Math.PI - 0.1);
+                this.ctx.stroke();
+                break;
+            case 'wink':
+                // wink微笑
+                this.ctx.beginPath();
+                this.ctx.arc(0, mouthY - size * 0.1, mouthW * 0.4, 0.2, Math.PI - 0.2);
+                this.ctx.stroke();
+                break;
+            case 'cool':
+                // 酷酷的微笑
+                this.ctx.beginPath();
+                this.ctx.moveTo(-mouthW * 0.3, mouthY);
+                this.ctx.lineTo(mouthW * 0.3, mouthY);
+                this.ctx.stroke();
+                break;
+            case 'yum':
+                // 吐舌头
+                this.ctx.beginPath();
+                this.ctx.arc(0, mouthY - size * 0.1, mouthW * 0.4, 0.2, Math.PI - 0.2);
+                this.ctx.stroke();
+                // 舌头
+                this.ctx.fillStyle = '#ff6b6b';
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, mouthY + size * 0.1, mouthW * 0.25, size * 0.15, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                break;
+            case 'think':
+                // 撇嘴思考
+                this.ctx.beginPath();
+                this.ctx.moveTo(-mouthW * 0.3, mouthY + size * 0.1);
+                this.ctx.quadraticCurveTo(0, mouthY - size * 0.1, mouthW * 0.3, mouthY + size * 0.05);
+                this.ctx.stroke();
+                break;
+        }
+    }
+
     drawMovingPiece() {
         if (!this.movingHorse) return;
         
@@ -938,6 +1055,8 @@ class GameRenderer {
         
         if (this.currentSkin === 'classic') {
             this.drawClassicBall(color, size);
+        } else if (this.currentSkin === 'smiley') {
+            this.drawSmiley(color, size);
         } else {
             this.drawHorse(color, size);
         }
@@ -1109,7 +1228,8 @@ class GameController {
         const skinSelector = document.getElementById('skin-selector');
         const skins = [
             {name: 'classic', display: '经典球', desc: '传统风格'},
-            {name: 'horse', display: '马年马', desc: '马年主题'}
+            {name: 'horse', display: '马年马', desc: '马年主题'},
+            {name: 'smiley', display: '笑脸球', desc: '随机表情'}
         ];
         
         skins.forEach(skin => {
@@ -1361,9 +1481,53 @@ class GameController {
                     ctx.beginPath();
                     ctx.arc(centerX - 6, centerY - 6, 6, 0, Math.PI * 2);
                     ctx.fill();
+                } else if (this.renderer.currentSkin === 'smiley') {
+                    // 笑脸球样式
+                    const c = palette[color - 1] || '#fff';
+                    ctx.shadowColor = c;
+                    ctx.shadowBlur = 8;
+                    
+                    const grad = ctx.createRadialGradient(centerX - 6, centerY - 6, 0, centerX, centerY, radius);
+                    grad.addColorStop(0, '#fff');
+                    grad.addColorStop(0.5, c);
+                    grad.addColorStop(1, this.darkenColor(c, 30));
+                    
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 0;
+                    
+                    // 简单表情：两个圆点眼睛 + 微笑
+                    const eyeSize = 3;
+                    const eyeOffset = 7;
+                    const eyeY = centerY - 3;
+                    
+                    if (color === CellColor.WHITE) {
+                        // 白球星星眼
+                        ctx.fillStyle = '#ffd700';
+                        this.drawStarPreview(ctx, centerX - eyeOffset, eyeY, 5, eyeSize + 2, eyeSize);
+                        this.drawStarPreview(ctx, centerX + eyeOffset, eyeY, 5, eyeSize + 2, eyeSize);
+                    } else {
+                        // 普通眼睛
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(centerX - eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+                        ctx.arc(centerX + eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // 微笑嘴巴
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY + 2, 5, 0.2, Math.PI - 0.2);
+                    ctx.stroke();
                 } else {
                     // 马年马样式
-                    const horseColors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c'];
+                    const horseColors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c', '#95a5a6', '#ffffff'];
                     const bodyColor = horseColors[color - 1];
                     
                     const grad = ctx.createRadialGradient(centerX - 4, centerY - 4, 0, centerX, centerY, radius);
@@ -1422,6 +1586,30 @@ GameController.prototype.darkenColor = function(color, percent) {
     const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
     const B = Math.max(0, (num & 0x0000FF) - amt);
     return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
+};
+
+// 预览区星星绘制（供预览使用）
+GameController.prototype.drawStarPreview = function(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+    let rot = Math.PI / 2 * 3;
+    let x = cx;
+    let y = cy;
+    const step = Math.PI / spikes;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerRadius);
+    for (let i = 0; i < spikes; i++) {
+        x = cx + Math.cos(rot) * outerRadius;
+        y = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+
+        x = cx + Math.cos(rot) * innerRadius;
+        y = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+    }
+    ctx.lineTo(cx, cy - outerRadius);
+    ctx.closePath();
 };
 
 // 启动
