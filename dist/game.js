@@ -388,6 +388,10 @@ class HorseRenderer {
         this.animations = new Map();
         this.particles = [];
         
+        // 移动动画
+        this.movingHorse = null; // { from, to, path, progress, color, onComplete }
+        this.pathDots = []; // 路径点动画
+        
         this.resize();
         window.addEventListener('resize', () => this.resize());
         
@@ -442,6 +446,7 @@ class HorseRenderer {
     updateAnimations() {
         const now = Date.now();
         
+        // 更新选中动画
         if (this.selectedHorse) {
             const anim = this.animations.get(`${this.selectedHorse.row},${this.selectedHorse.col}`);
             if (anim) {
@@ -450,6 +455,31 @@ class HorseRenderer {
             }
         }
 
+        // 更新移动动画
+        if (this.movingHorse) {
+            const elapsed = now - this.movingHorse.startTime;
+            const duration = 300; // 移动动画时长 300ms
+            this.movingHorse.progress = Math.min(elapsed / duration, 1);
+            
+            // 使用 ease-out 缓动
+            const t = this.movingHorse.progress;
+            this.movingHorse.easedProgress = 1 - Math.pow(1 - t, 3);
+            
+            if (this.movingHorse.progress >= 1) {
+                // 动画完成
+                const callback = this.movingHorse.onComplete;
+                this.movingHorse = null;
+                if (callback) callback();
+            }
+        }
+        
+        // 更新路径点动画
+        this.pathDots = this.pathDots.filter(dot => {
+            dot.life -= 0.05;
+            return dot.life > 0;
+        });
+
+        // 更新粒子
         this.particles = this.particles.filter(p => {
             p.life -= 0.02;
             p.x += p.vx;
@@ -463,7 +493,9 @@ class HorseRenderer {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawBackground();
         this.drawGrid();
+        this.drawPathDots();
         this.drawHorses();
+        this.drawMovingHorse();
         this.drawParticles();
     }
 
@@ -502,6 +534,11 @@ class HorseRenderer {
     drawHorses() {
         for (let row = 0; row < BOARD_SIZE; row++) {
             for (let col = 0; col < BOARD_SIZE; col++) {
+                // 如果这匹马正在移动，不绘制静止的它
+                if (this.movingHorse && this.movingHorse.from.row === row && this.movingHorse.from.col === col) {
+                    continue;
+                }
+                
                 const color = this.game.state.board[row][col];
                 if (color !== CellColor.EMPTY) {
                     this.drawHorse(row, col, color);
@@ -839,6 +876,108 @@ class HorseRenderer {
         this.selectedHorse = null;
     }
 
+    // ==================== 移动动画 ====================
+    animateMove(from, to, path, color, onComplete) {
+        // 创建路径点动画
+        this.pathDots = [];
+        for (let i = 0; i < path.length; i++) {
+            const pos = path[i];
+            this.pathDots.push({
+                row: pos.row,
+                col: pos.col,
+                life: 1 - (i / path.length) * 0.5,
+                delay: Date.now() + i * 30
+            });
+        }
+        
+        // 设置移动动画
+        this.movingHorse = {
+            from,
+            to,
+            path,
+            color,
+            startTime: Date.now(),
+            progress: 0,
+            easedProgress: 0,
+            onComplete
+        };
+    }
+
+    drawPathDots() {
+        const now = Date.now();
+        for (const dot of this.pathDots) {
+            if (now < dot.delay) continue;
+            
+            const x = dot.col * this.cellSize + this.cellSize / 2;
+            const y = dot.row * this.cellSize + this.cellSize / 2;
+            
+            this.ctx.globalAlpha = dot.life * 0.6;
+            this.ctx.fillStyle = '#ffd700';
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, this.cellSize * 0.15 * dot.life, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1;
+    }
+
+    drawMovingHorse() {
+        if (!this.movingHorse) return;
+        
+        const { from, to, path, color, easedProgress } = this.movingHorse;
+        
+        // 计算当前位置
+        const pathIndex = Math.floor(easedProgress * (path.length - 1));
+        const nextIndex = Math.min(pathIndex + 1, path.length - 1);
+        const segmentProgress = (easedProgress * (path.length - 1)) - pathIndex;
+        
+        const currentPos = path[pathIndex];
+        const nextPos = path[nextIndex];
+        
+        const x = (currentPos.col + (nextPos.col - currentPos.col) * segmentProgress) * this.cellSize + this.cellSize / 2;
+        const y = (currentPos.row + (nextPos.row - currentPos.row) * segmentProgress) * this.cellSize + this.cellSize / 2;
+        const size = this.cellSize * 0.35;
+        
+        // 绘制移动中的马
+        this.ctx.save();
+        this.ctx.translate(x, y);
+        
+        // 跳跃效果
+        const jumpHeight = Math.sin(segmentProgress * Math.PI) * size * 0.3;
+        this.ctx.translate(0, -jumpHeight);
+        
+        // 根据方向翻转
+        if (nextPos.col < currentPos.col) {
+            this.ctx.scale(-1, 1);
+        }
+        
+        // 绘制马
+        switch(color) {
+            case CellColor.RED:
+                this.drawRedHorse(size);
+                break;
+            case CellColor.BLUE:
+                this.drawBlueHorse(size);
+                break;
+            case CellColor.GREEN:
+                this.drawGreenHorse(size);
+                break;
+            case CellColor.YELLOW:
+                this.drawYellowHorse(size);
+                break;
+            case CellColor.PURPLE:
+                this.drawPurpleHorse(size);
+                break;
+            case CellColor.ORANGE:
+                this.drawOrangeHorse(size);
+                break;
+            case CellColor.CYAN:
+                this.drawCyanHorse(size);
+                break;
+        }
+        
+        this.ctx.restore();
+    }
+
     lightenColor(color, percent) {
         const num = parseInt(color.replace('#', ''), 16);
         const amt = Math.round(2.55 * percent);
@@ -903,6 +1042,9 @@ class GameController {
 
     handleInput(clientX, clientY) {
         if (this.game.state.gameOver) return;
+        
+        // 如果正在移动动画中，忽略点击
+        if (this.renderer.movingHorse) return;
 
         const cell = this.renderer.getCellFromPoint(clientX, clientY);
         if (!cell) return;
@@ -919,26 +1061,76 @@ class GameController {
         }
 
         if (this.game.state.selectedBall) {
-            const result = this.game.moveBall(cell);
-
-            if (result.success) {
-                this.renderer.deselectHorse();
-
+            // 先获取路径
+            const path = this.game.findPath(this.game.state.selectedBall, cell);
+            if (!path) return;
+            
+            // 保存必要信息
+            const from = this.game.state.selectedBall;
+            const to = cell;
+            const color = this.game.state.board[from.row][from.col];
+            
+            // 保存历史
+            this.game.moveHistory.push(JSON.parse(JSON.stringify(this.game.state)));
+            if (this.game.moveHistory.length > 3) {
+                this.game.moveHistory.shift();
+            }
+            
+            // 执行移动动画
+            this.renderer.animateMove(from, to, path, color, () => {
+                // 动画完成后执行逻辑
+                const result = this.completeMove(to);
+                
                 if (result.eliminated) {
                     this.renderer.createEliminationParticles(result.eliminated);
                 }
-
                 if (result.newBalls) {
                     this.renderer.createSpawnParticles(result.newBalls);
                 }
-
+                
                 this.updateUI();
                 this.updateNextBalls();
-
+                
                 if (this.game.state.gameOver) {
                     this.showGameOver();
                 }
+            });
+            
+            // 立即更新棋盘（动画会覆盖显示）
+            this.game.state.board[from.row][from.col] = CellColor.EMPTY;
+            this.game.state.board[to.row][to.col] = color;
+            this.game.state.selectedBall = null;
+            this.renderer.deselectHorse();
+        }
+    }
+    
+    // 完成移动后的逻辑
+    completeMove(targetPos) {
+        const lines = this.game.checkLines(targetPos);
+        
+        if (lines.length > 0) {
+            const eliminated = this.game.eliminateBalls(lines);
+            this.game.state.score += this.game.calculateScore(eliminated.length);
+            
+            if (this.game.checkGameOver()) {
+                this.game.state.gameOver = true;
             }
+            
+            return {
+                eliminated,
+                score: this.game.state.score
+            };
+        } else {
+            const newBalls = this.game.spawnBalls();
+            
+            if (this.game.checkGameOver()) {
+                this.game.state.gameOver = true;
+            }
+            
+            return {
+                newBalls,
+                score: this.game.state.score
+            };
         }
     }
 
