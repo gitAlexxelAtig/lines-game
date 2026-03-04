@@ -310,6 +310,7 @@ class LinesGame {
 
     spawnBalls() {
         const newBalls = [];
+        const eliminatedBalls = [];
         const empty = [];
         
         for (let r = 0; r < BOARD_SIZE; r++) {
@@ -323,13 +324,22 @@ class LinesGame {
             const pos = empty.splice(idx, 1)[0];
             const color = this.state.nextBalls.shift() || this.generateRandomBalls(1)[0];
             this.state.board[pos.row][pos.col] = color;
-            newBalls.push(pos);
+            newBalls.push({...pos, color});
+            
+            // 检查新球是否形成连珠
+            const lines = this.checkLines(pos);
+            if (lines.length > 0) {
+                const eliminated = this.eliminateBalls(lines);
+                eliminatedBalls.push(...eliminated.map(e => ({...e, color: this.state.board[e.row][e.col]})));
+                this.state.score += eliminated.length * 10;
+            }
         }
         
         while (this.state.nextBalls.length < BALLS_PER_TURN) {
             this.state.nextBalls.push(this.generateRandomBalls(1)[0]);
         }
-        return newBalls;
+        
+        return {newBalls, eliminatedBalls};
     }
 
     checkGameOver() {
@@ -1023,10 +1033,21 @@ class GameController {
             this.renderer.animateMove(from, to, path, color, () => {
                 const result = this.completeMove(to);
                 
+                // 处理移动后的消除
                 if (result.eliminated) {
                     this.renderer.createEliminationParticles(result.eliminated, result.eliminatedColors);
                     this.renderer.audio.play('eliminate');
                 }
+                
+                // 处理生成新球时的消除
+                if (result.eliminatedBalls && result.eliminatedBalls.length > 0) {
+                    this.renderer.createEliminationParticles(
+                        result.eliminatedBalls.map(e => ({row: e.row, col: e.col})),
+                        result.eliminatedBalls.map(e => e.color)
+                    );
+                    this.renderer.audio.play('eliminate');
+                }
+                
                 if (result.newBalls) {
                     this.renderer.audio.play('spawn');
                 }
@@ -1062,9 +1083,9 @@ class GameController {
             
             return {eliminated, eliminatedColors};
         } else {
-            const newBalls = this.game.spawnBalls();
+            const result = this.game.spawnBalls();
             if (this.game.checkGameOver()) this.game.state.gameOver = true;
-            return {newBalls};
+            return result;  // 返回 {newBalls, eliminatedBalls}
         }
     }
 
@@ -1122,12 +1143,74 @@ class GameController {
             const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#34495e'];
             
             for (const color of this.game.state.nextBalls) {
-                const slot = document.createElement('div');
-                slot.className = 'preview-slot';
-                slot.style.backgroundColor = palette[color - 1] || '#666';
-                slot.style.border = 'none';
-                slot.style.boxShadow = `0 2px 8px ${palette[color - 1]}40`;
-                container.appendChild(slot);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'preview-wrapper';
+                
+                // 创建 canvas 绘制预览小球
+                const canvas = document.createElement('canvas');
+                canvas.width = 50;
+                canvas.height = 50;
+                canvas.className = 'preview-canvas';
+                
+                const ctx = canvas.getContext('2d');
+                const centerX = 25, centerY = 25, radius = 18;
+                
+                if (this.renderer.currentSkin === 'classic') {
+                    // 经典球样式
+                    const c = palette[color - 1];
+                    ctx.shadowColor = c;
+                    ctx.shadowBlur = 10;
+                    
+                    const grad = ctx.createRadialGradient(centerX - 6, centerY - 6, 0, centerX, centerY, radius);
+                    grad.addColorStop(0, '#fff');
+                    grad.addColorStop(0.3, c);
+                    grad.addColorStop(1, this.darkenColor(c, 30));
+                    
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.beginPath();
+                    ctx.arc(centerX - 6, centerY - 6, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // 马年马样式
+                    const horseColors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c'];
+                    const bodyColor = horseColors[color - 1];
+                    
+                    const grad = ctx.createRadialGradient(centerX - 4, centerY - 4, 0, centerX, centerY, radius);
+                    grad.addColorStop(0, this.lightenColor(bodyColor, 30));
+                    grad.addColorStop(0.5, bodyColor);
+                    grad.addColorStop(1, this.darkenColor(bodyColor, 20));
+                    
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.ellipse(centerX, centerY - 2, radius * 0.8, radius, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 耳朵
+                    ctx.beginPath();
+                    ctx.moveTo(centerX - 8, centerY - 12);
+                    ctx.lineTo(centerX - 12, centerY - 22);
+                    ctx.lineTo(centerX - 3, centerY - 16);
+                    ctx.fill();
+                    
+                    // 眼睛
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(centerX - 5, centerY - 5, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(centerX - 5, centerY - 5, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                wrapper.appendChild(canvas);
+                container.appendChild(wrapper);
             }
         }
         
@@ -1136,6 +1219,25 @@ class GameController {
         }
     }
 }
+
+// 颜色工具函数（供预览使用）
+GameController.prototype.lightenColor = function(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.min(255, (num >> 16) + amt);
+    const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+    const B = Math.min(255, (num & 0x0000FF) + amt);
+    return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
+};
+
+GameController.prototype.darkenColor = function(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, (num >> 16) - amt);
+    const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
+    const B = Math.max(0, (num & 0x0000FF) - amt);
+    return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
+};
 
 // 启动
 window.addEventListener('DOMContentLoaded', () => {
