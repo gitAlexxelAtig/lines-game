@@ -96,6 +96,32 @@ class AudioManager {
         return buffer;
     }
 
+    // 播放移动音效序列（根据距离）
+    playMoveSequence(distance) {
+        if (!this.enabled || !this.ctx || this.currentSkin !== 'horse') {
+            this.play('move');
+            return;
+        }
+        
+        this.resume();
+        const steps = Math.min(distance, 8); // 最多8声
+        const interval = 80; // 间隔ms
+        
+        for (let i = 0; i < steps; i++) {
+            setTimeout(() => {
+                if (!this.enabled) return;
+                const source = this.ctx.createBufferSource();
+                source.buffer = this.buffers.move;
+                // 创建增益节点控制音量衰减
+                const gain = this.ctx.createGain();
+                gain.gain.value = 1 - (i / steps) * 0.3; // 渐弱
+                source.connect(gain);
+                gain.connect(this.ctx.destination);
+                source.start();
+            }, i * interval);
+        }
+    }
+
     // 皮肤相关音效
     loadSkinSounds(skinName) {
         this.buffers = {};
@@ -887,7 +913,9 @@ class GameController {
             this.game.state.board[to.row][to.col] = color;
             this.game.state.selectedBall = null;
             this.renderer.deselectPiece();
-            this.renderer.audio.play('move');
+            
+            // 根据路径长度播放音效序列
+            this.renderer.audio.playMoveSequence(path.length);
         }
     }
 

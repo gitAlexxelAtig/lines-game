@@ -436,16 +436,24 @@ body {
     margin-top: 20px;
 }
 
-/* ==================== 平板横屏优化 ==================== */
-@media (orientation: landscape) and (max-height: 600px) {
+/* ==================== 横屏适配（平板） ==================== */
+
+/* 检测横屏 */
+@media (orientation: landscape) and (max-height: 600px),
+       (orientation: landscape) and (max-width: 1024px) {
     #game-container {
         flex-direction: row;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        padding: 10px;
+        gap: 10px;
     }
     
     .header {
-        width: 100%;
-        padding: 10px 20px;
+        width: auto;
+        min-width: 150px;
+        flex-direction: column;
+        padding: 10px 15px;
+        order: 2;
     }
     
     .header::before,
@@ -454,28 +462,91 @@ body {
     }
     
     .title {
-        font-size: 24px;
+        font-size: 18px;
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        letter-spacing: 4px;
+        margin: 10px 0;
+    }
+    
+    .score-section {
+        margin: 5px 0;
+    }
+    
+    .score-section .label {
+        font-size: 10px;
     }
     
     .score-section .value {
-        font-size: 24px;
+        font-size: 20px;
+        min-width: auto;
     }
     
     .board-container {
         flex: 1;
-        order: 2;
+        order: 1;
+        min-height: 0;
     }
     
-    .next-balls-section,
-    .controls {
-        width: 200px;
+    #game-canvas {
+        max-height: calc(100vh - 20px);
+        max-width: calc(100vh - 20px);
+    }
+    
+    .next-balls-section {
+        width: auto;
+        min-width: 120px;
         flex-direction: column;
         order: 3;
+        padding: 10px;
+    }
+    
+    .next-balls-section .label {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .preview-balls {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .preview-slot {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .controls {
+        width: auto;
+        min-width: 80px;
+        flex-direction: column;
+        order: 4;
+        gap: 8px;
     }
     
     .btn {
-        width: 100%;
-        padding: 12px 20px;
+        padding: 8px 12px;
+        font-size: 12px;
+        min-width: auto;
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        letter-spacing: 2px;
+    }
+    
+    #btn-settings {
+        writing-mode: horizontal-tb;
+        font-size: 16px;
+    }
+}
+
+/* 超小屏幕横屏 */
+@media (orientation: landscape) and (max-height: 400px) {
+    .title {
+        display: none;
+    }
+    
+    .score-section .value {
+        font-size: 16px;
     }
 }
 
