@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>五子连珠 - 马年大吉</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 顶部信息栏 -->
+        <div class="header">
+            <div class="score-section">
+                <span class="label">分数</span>
+                <span id="score" class="value">0</span>
+            </div>
+            <div class="title">五子连珠</div>
+            <div class="score-section">
+                <span class="label">最高分</span>
+                <span id="high-score" class="value">0</span>
+            </div>
+        </div>
+
+        <!-- 游戏棋盘区域 -->
+        <div class="board-container">
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <!-- 下回合预览 -->
+        <div class="next-balls-section">
+            <span class="label">下回合:</span>
+            <div id="next-balls" class="preview-balls">
+                <div class="preview-slot"></div>
+                <div class="preview-slot"></div>
+                <div class="preview-slot"></div>
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="controls">
+            <button id="btn-new-game" class="btn primary">新游戏</button>
+            <button id="btn-undo" class="btn" disabled>撤销</button>
+            <button id="btn-hint" class="btn" disabled>提示</button>
+        </div>
+    </div>
+
+    <!-- 游戏结束弹窗 -->
+    <div id="game-over-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>游戏结束</h2>
+            <p class="final-score">最终得分: <span id="final-score">0</span></p>
+            <button id="btn-restart" class="btn primary">再来一局</button>
+        </div>
+    </div>
+
+    <script src="dist/game.js"></script>
+    <script>
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((registration) => {
+                        console.log('SW registered:', registration);
+                    })
+                    .catch((error) => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

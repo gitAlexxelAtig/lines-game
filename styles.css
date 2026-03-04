@@ -1,0 +1,376 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+body {
+    font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(180deg, #1a0f0a 0%, #2d1f16 50%, #1a0f0a 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    touch-action: none;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 900px;
+    height: 100vh;
+    max-height: 1200px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 15px;
+}
+
+/* 顶部信息栏 - 古风卷轴风格 */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, #8b4513 0%, #a0522d 50%, #8b4513 100%);
+    border: 3px solid #d4af37;
+    border-radius: 12px;
+    padding: 15px 25px;
+    box-shadow: 
+        0 4px 15px rgba(0, 0, 0, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+.header::before,
+.header::after {
+    content: '🐴';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+.header::before {
+    left: 10px;
+}
+
+.header::after {
+    right: 10px;
+}
+
+.title {
+    font-size: 32px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(255, 215, 0, 0.3);
+    font-family: 'STKaiti', 'KaiTi', serif;
+    letter-spacing: 4px;
+}
+
+.score-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    z-index: 1;
+}
+
+.score-section .label {
+    font-size: 14px;
+    color: #deb887;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.score-section .value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    min-width: 80px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+}
+
+/* 棋盘区域 */
+.board-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+#game-canvas {
+    border-radius: 16px;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.6),
+        0 0 0 4px #8b4513,
+        0 0 0 6px #d4af37;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 下回合预览 - 马厩风格 */
+.next-balls-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background: linear-gradient(180deg, #5d4e37 0%, #4a3f2a 100%);
+    border: 2px solid #8b7355;
+    border-radius: 12px;
+    padding: 12px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.next-balls-section .label {
+    font-size: 16px;
+    color: #deb887;
+    font-weight: 600;
+}
+
+.preview-balls {
+    display: flex;
+    gap: 12px;
+}
+
+.preview-slot {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid #8b7355;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        0 1px 2px rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.preview-slot:hover {
+    transform: scale(1.1);
+}
+
+/* 控制按钮 - 古风按钮 */
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.btn {
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: linear-gradient(180deg, #8b4513 0%, #654321 100%);
+    color: #ffd700;
+    border: 2px solid #d4af37;
+    box-shadow: 
+        0 4px 15px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.1);
+    min-width: 100px;
+    font-family: 'STKaiti', 'KaiTi', serif;
+    letter-spacing: 2px;
+}
+
+.btn:hover {
+    background: linear-gradient(180deg, #a0522d 0%, #8b4513 100%);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 6px 20px rgba(0, 0, 0, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn.primary {
+    background: linear-gradient(180deg, #d4af37 0%, #b8860b 100%);
+    color: #3d2817;
+    border-color: #ffd700;
+}
+
+.btn.primary:hover {
+    background: linear-gradient(180deg, #ffd700 0%, #d4af37 100%);
+}
+
+/* 游戏结束弹窗 - 古风卷轴 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+}
+
+.modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: linear-gradient(180deg, #f4e4c1 0%, #deb887 100%);
+    padding: 40px 60px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 0 4px #8b4513,
+        0 0 0 6px #d4af37;
+    border: none;
+    position: relative;
+}
+
+.modal-content::before {
+    content: '🐴';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 50px;
+    background: #f4e4c1;
+    border-radius: 50%;
+    padding: 10px;
+    border: 3px solid #d4af37;
+}
+
+.modal-content h2 {
+    font-size: 36px;
+    color: #8b4513;
+    margin-bottom: 20px;
+    font-family: 'STKaiti', 'KaiTi', serif;
+    margin-top: 20px;
+}
+
+.final-score {
+    font-size: 24px;
+    color: #5d4e37;
+    margin-bottom: 30px;
+}
+
+.final-score span {
+    color: #d4af37;
+    font-size: 48px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 平板横屏优化 */
+@media (orientation: landscape) and (max-height: 600px) {
+    #game-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .header {
+        width: 100%;
+        padding: 10px 20px;
+    }
+    
+    .header::before,
+    .header::after {
+        display: none;
+    }
+    
+    .title {
+        font-size: 24px;
+    }
+    
+    .score-section .value {
+        font-size: 24px;
+    }
+    
+    .board-container {
+        flex: 1;
+        order: 2;
+    }
+    
+    .next-balls-section,
+    .controls {
+        width: 200px;
+        flex-direction: column;
+        order: 3;
+    }
+    
+    .btn {
+        width: 100%;
+        padding: 12px 20px;
+    }
+}
+
+/* 小屏幕平板适配 */
+@media (max-width: 768px) {
+    .title {
+        font-size: 24px;
+        letter-spacing: 2px;
+    }
+    
+    .score-section .value {
+        font-size: 24px;
+    }
+    
+    .score-section .label {
+        font-size: 12px;
+    }
+    
+    .preview-slot {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .btn {
+        padding: 12px 20px;
+        font-size: 16px;
+        min-width: 80px;
+    }
+    
+    .modal-content {
+        padding: 30px 40px;
+    }
+    
+    .modal-content h2 {
+        font-size: 28px;
+    }
+    
+    .final-score span {
+        font-size: 36px;
+    }
+}
+
+/* 动画效果 */
+@keyframes gallop {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-5px) rotate(-2deg); }
+    50% { transform: translateY(0) rotate(0deg); }
+    75% { transform: translateY(-3px) rotate(2deg); }
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
