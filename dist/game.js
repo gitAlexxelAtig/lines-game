@@ -12,13 +12,15 @@ const CellColor = {
     YELLOW: 4,
     PURPLE: 5,
     ORANGE: 6,
-    CYAN: 7
+    CYAN: 7,
+    WHITE: 8  // 万能白色球
 };
 
 const BOARD_SIZE = 9;
 const INITIAL_BALLS = 5;
 const BALLS_PER_TURN = 3;
 const MATCH_LENGTH = 5;
+const WHITE_BALL_CHANCE = 0.15; // 15%概率生成白色球
 
 // ==================== 音频系统 ====================
 class AudioManager {
@@ -206,7 +208,12 @@ class LinesGame {
     generateRandomBalls(count) {
         const balls = [];
         for (let i = 0; i < count; i++) {
-            balls.push(Math.floor(Math.random() * this.colorCount) + 1);
+            // 15%概率生成白色万能球
+            if (Math.random() < WHITE_BALL_CHANCE) {
+                balls.push(CellColor.WHITE);
+            } else {
+                balls.push(Math.floor(Math.random() * this.colorCount) + 1);
+            }
         }
         return balls;
     }
@@ -273,19 +280,97 @@ class LinesGame {
         const lines = [];
         const dirPairs = [[[-1,0],[1,0]], [[0,-1],[0,1]], [[-1,-1],[1,1]], [[-1,1],[1,-1]]];
         
+        // 如果当前是白色球，尝试匹配周围最多的颜色
+        if (color === CellColor.WHITE) {
+            // 找到周围出现最多的非白颜色
+            const colorCounts = {};
+            for (const [d1, d2] of dirPairs) {
+                for (const [dr, dc] of [d1, d2]) {
+                    const nr = pos.row + dr, nc = pos.col + dc;
+                    if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                        const neighborColor = this.state.board[nr][nc];
+                        if (neighborColor !== CellColor.EMPTY && neighborColor !== CellColor.WHITE) {
+                            colorCounts[neighborColor] = (colorCounts[neighborColor] || 0) + 1;
+                        }
+                    }
+                }
+            }
+            // 选择出现最多的颜色来匹配
+            let targetColor = null;
+            let maxCount = 0;
+            for (const [c, count] of Object.entries(colorCounts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    targetColor = parseInt(c);
+                }
+            }
+            if (!targetColor) return []; // 周围没有其他颜色，无法形成连珠
+            
+            // 用目标颜色检查连珠
+            return this.checkLinesWithColor(pos, targetColor);
+        }
+        
+        // 普通颜色检查（包括与白色球匹配）
+        for (const [d1, d2] of dirPairs) {
+            const line = [{...pos}];
+            
+            // 向d1方向扫描（包括白色球）
+            let r = pos.row + d1[0], c = pos.col + d1[1];
+            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                const cellColor = this.state.board[r][c];
+                if (cellColor === color || cellColor === CellColor.WHITE) {
+                    line.push({row: r, col: c});
+                    r += d1[0]; c += d1[1];
+                } else {
+                    break;
+                }
+            }
+            
+            // 向d2方向扫描（包括白色球）
+            r = pos.row + d2[0]; c = pos.col + d2[1];
+            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                const cellColor = this.state.board[r][c];
+                if (cellColor === color || cellColor === CellColor.WHITE) {
+                    line.push({row: r, col: c});
+                    r += d2[0]; c += d2[1];
+                } else {
+                    break;
+                }
+            }
+            
+            if (line.length >= MATCH_LENGTH) lines.push(line);
+        }
+        return lines;
+    }
+    
+    // 辅助方法：用指定颜色检查连珠（用于白色球）
+    checkLinesWithColor(pos, targetColor) {
+        const lines = [];
+        const dirPairs = [[[-1,0],[1,0]], [[0,-1],[0,1]], [[-1,-1],[1,1]], [[-1,1],[1,-1]]];
+        
         for (const [d1, d2] of dirPairs) {
             const line = [{...pos}];
             
             let r = pos.row + d1[0], c = pos.col + d1[1];
-            while (r >=0 && r<BOARD_SIZE && c>=0 && c<BOARD_SIZE && this.state.board[r][c]===color) {
-                line.push({row: r, col: c});
-                r += d1[0]; c += d1[1];
+            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                const cellColor = this.state.board[r][c];
+                if (cellColor === targetColor || cellColor === CellColor.WHITE) {
+                    line.push({row: r, col: c});
+                    r += d1[0]; c += d1[1];
+                } else {
+                    break;
+                }
             }
             
             r = pos.row + d2[0]; c = pos.col + d2[1];
-            while (r >=0 && r<BOARD_SIZE && c>=0 && c<BOARD_SIZE && this.state.board[r][c]===color) {
-                line.push({row: r, col: c});
-                r += d2[0]; c += d2[1];
+            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                const cellColor = this.state.board[r][c];
+                if (cellColor === targetColor || cellColor === CellColor.WHITE) {
+                    line.push({row: r, col: c});
+                    r += d2[0]; c += d2[1];
+                } else {
+                    break;
+                }
             }
             
             if (line.length >= MATCH_LENGTH) lines.push(line);
@@ -705,14 +790,28 @@ class GameRenderer {
     }
 
     drawClassicBall(color, size) {
-        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#34495e'];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
         const c = palette[color - 1] || '#666';
+        
+        // 白色球特殊效果 - 彩虹光环
+        if (color === CellColor.WHITE) {
+            // 绘制彩虹光环
+            const rainbow = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
+            for (let i = 0; i < rainbow.length; i++) {
+                this.ctx.shadowColor = rainbow[i];
+                this.ctx.shadowBlur = 20 + i * 2;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, size + i * 2, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+            this.ctx.shadowBlur = 0;
+        }
         
         this.ctx.shadowColor = c;
         this.ctx.shadowBlur = 15;
         
         const grad = this.ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
-        grad.addColorStop(0, this.lighten(c, 40));
+        grad.addColorStop(0, '#ffffff');
         grad.addColorStop(0.5, c);
         grad.addColorStop(1, this.darken(c, 30));
         
@@ -722,19 +821,41 @@ class GameRenderer {
         this.ctx.fill();
         
         this.ctx.shadowBlur = 0;
-        this.ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        this.ctx.fillStyle = 'rgba(255,255,255,0.5)';
         this.ctx.beginPath();
         this.ctx.arc(-size * 0.3, -size * 0.3, size * 0.25, 0, Math.PI * 2);
         this.ctx.fill();
+        
+        // 白色球中间加⭐标志
+        if (color === CellColor.WHITE) {
+            this.ctx.fillStyle = '#ffd700';
+            this.drawStar(0, 0, 5, size * 0.5, size * 0.2);
+            this.ctx.fill();
+        }
     }
 
     drawHorse(color, size) {
-        const colors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c', '#95a5a6', '#34495e'];
+        const colors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c', '#95a5a6', '#ffffff'];
         const bodyColor = colors[color - 1] || '#666';
+        
+        // 白色马特殊效果 - 彩虹光环
+        if (color === CellColor.WHITE) {
+            const rainbow = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
+            for (let i = 0; i < rainbow.length; i++) {
+                this.ctx.shadowColor = rainbow[i];
+                this.ctx.shadowBlur = 20 + i * 2;
+                this.ctx.strokeStyle = rainbow[i];
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, size * 1.2 + i * 3, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+            this.ctx.shadowBlur = 0;
+        }
         
         // 身体
         const grad = this.ctx.createRadialGradient(-size * 0.2, -size * 0.2, 0, 0, 0, size);
-        grad.addColorStop(0, this.lighten(bodyColor, 30));
+        grad.addColorStop(0, '#ffffff');
         grad.addColorStop(0.5, bodyColor);
         grad.addColorStop(1, this.darken(bodyColor, 20));
         
@@ -780,6 +901,13 @@ class GameRenderer {
         this.ctx.arc(-size * 0.15, -size * 0.25, size * 0.03, 0, Math.PI * 2);
         this.ctx.arc(size * 0.25, -size * 0.25, size * 0.03, 0, Math.PI * 2);
         this.ctx.fill();
+        
+        // 白色马头顶加⭐标志
+        if (color === CellColor.WHITE) {
+            this.ctx.fillStyle = '#ffd700';
+            this.drawStar(0, -size * 0.8, 5, size * 0.3, size * 0.12);
+            this.ctx.fill();
+        }
     }
 
     drawMovingPiece() {
@@ -1191,7 +1319,7 @@ class GameController {
         const container = document.getElementById('next-balls');
         if (container) {
             container.innerHTML = '';
-            const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#34495e'];
+            const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
             
             for (const color of this.game.state.nextBalls) {
                 const wrapper = document.createElement('div');
