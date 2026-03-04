@@ -280,7 +280,163 @@ body {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* 平板横屏优化 */
+/* ==================== 设置面板 ==================== */
+
+.settings-panel {
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.settings-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(139, 69, 19, 0.2);
+}
+
+.settings-section:last-of-type {
+    border-bottom: none;
+}
+
+.settings-section h3 {
+    font-size: 18px;
+    color: #8b4513;
+    margin-bottom: 15px;
+    font-family: 'STKaiti', 'KaiTi', serif;
+}
+
+/* 皮肤网格 */
+.skin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.skin-option {
+    background: linear-gradient(180deg, #f4e4c1 0%, #deb887 100%);
+    border: 2px solid #8b4513;
+    border-radius: 12px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.skin-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.skin-option.active {
+    border-color: #d4af37;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.5);
+}
+
+.skin-preview {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.skin-preview.horse {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.skin-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #5d4e37;
+}
+
+.skin-desc {
+    font-size: 12px;
+    color: #8b7355;
+    margin-top: 4px;
+}
+
+/* 开关切换 */
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    display: none;
+}
+
+.toggle-slider {
+    width: 50px;
+    height: 26px;
+    background: #8b7355;
+    border-radius: 13px;
+    position: relative;
+    transition: background 0.3s ease;
+    margin-right: 12px;
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: #f4e4c1;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s ease;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: #27ae60;
+}
+
+.toggle-switch input:checked + .toggle-slider::after {
+    transform: translateX(24px);
+}
+
+.toggle-label {
+    font-size: 16px;
+    color: #5d4e37;
+}
+
+/* 难度按钮 */
+.difficulty-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.diff-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    border: 2px solid #8b4513;
+    border-radius: 8px;
+    background: rgba(139, 69, 19, 0.1);
+    color: #8b4513;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'STKaiti', 'KaiTi', serif;
+}
+
+.diff-btn:hover {
+    background: rgba(139, 69, 19, 0.2);
+}
+
+.diff-btn.active {
+    background: #8b4513;
+    color: #ffd700;
+}
+
+/* 设置操作按钮 */
+.settings-actions {
+    margin-top: 20px;
+}
+
+/* ==================== 平板横屏优化 ==================== */
 @media (orientation: landscape) and (max-height: 600px) {
     #game-container {
         flex-direction: row;

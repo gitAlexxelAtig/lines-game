@@ -44,6 +44,46 @@
             <button id="btn-new-game" class="btn primary">新游戏</button>
             <button id="btn-undo" class="btn" disabled>撤销</button>
             <button id="btn-hint" class="btn" disabled>提示</button>
+            <button id="btn-settings" class="btn">⚙️</button>
+        </div>
+    </div>
+
+    <!-- 设置面板 -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content settings-panel">
+            <h2>⚙️ 游戏设置</h2>
+            
+            <!-- 皮肤选择 -->
+            <div class="settings-section">
+                <h3>🎨 皮肤主题</h3>
+                <div id="skin-selector" class="skin-grid">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 音效开关 -->
+            <div class="settings-section">
+                <h3>🔊 音效设置</h3>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="sound-toggle" checked>
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">启用音效</span>
+                </label>
+            </div>
+            
+            <!-- 难度选择 -->
+            <div class="settings-section">
+                <h3>🎮 难度设置</h3>
+                <div class="difficulty-buttons">
+                    <button class="diff-btn" data-colors="5">简单 (5色)</button>
+                    <button class="diff-btn active" data-colors="7">普通 (7色)</button>
+                    <button class="diff-btn" data-colors="9">困难 (9色)</button>
+                </div>
+            </div>
+            
+            <div class="settings-actions">
+                <button id="btn-close-settings" class="btn primary">完成</button>
+            </div>
         </div>
     </div>
 
