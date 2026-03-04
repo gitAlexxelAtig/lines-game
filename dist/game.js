@@ -482,6 +482,11 @@ class GameRenderer {
         // 更新新球入场动画
         this.spawnAnimations = this.spawnAnimations.filter(anim => {
             const elapsed = now - anim.startTime;
+            // 如果还没到开始时间，保持scale为0
+            if (elapsed < 0) {
+                anim.scale = 0;
+                return true;
+            }
             anim.progress = Math.min(elapsed / anim.duration, 1);
             // 简单弹性效果：从0开始放大
             const t = anim.progress;
