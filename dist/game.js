@@ -286,33 +286,32 @@ class LinesGame {
         const lines = [];
         const dirPairs = [[[-1,0],[1,0]], [[0,-1],[0,1]], [[-1,-1],[1,1]], [[-1,1],[1,-1]]];
         
-        // 如果当前是白色球，尝试匹配周围最多的颜色
+        // 如果当前是白色球，尝试匹配周围最多的颜色（包括白球）
         if (color === CellColor.WHITE) {
-            // 找到周围出现最多的非白颜色
+            // 找到周围出现最多的颜色（包括白球自己）
             const colorCounts = {};
+            let whiteCount = 0;
             for (const [d1, d2] of dirPairs) {
                 for (const [dr, dc] of [d1, d2]) {
                     const nr = pos.row + dr, nc = pos.col + dc;
                     if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
                         const neighborColor = this.state.board[nr][nc];
-                        if (neighborColor !== CellColor.EMPTY && neighborColor !== CellColor.WHITE) {
+                        if (neighborColor === CellColor.WHITE) {
+                            whiteCount++;
+                        } else if (neighborColor !== CellColor.EMPTY) {
                             colorCounts[neighborColor] = (colorCounts[neighborColor] || 0) + 1;
                         }
                     }
                 }
             }
             // 选择出现最多的颜色来匹配
-            let targetColor = null;
-            let maxCount = 0;
+            let targetColor = CellColor.WHITE; // 默认用白球自己
+            let maxCount = whiteCount;
             for (const [c, count] of Object.entries(colorCounts)) {
                 if (count > maxCount) {
                     maxCount = count;
                     targetColor = parseInt(c);
                 }
-            }
-            // 如果没有周围颜色，用白球自身匹配（白球之间可以连珠）
-            if (!targetColor) {
-                targetColor = CellColor.WHITE;
             }
             
             // 用目标颜色检查连珠
