@@ -20,7 +20,12 @@ const BOARD_SIZE = 9;
 const INITIAL_BALLS = 5;
 const BALLS_PER_TURN = 3;
 const MATCH_LENGTH = 5;
-const WHITE_BALL_CHANCE = 0.15; // 15%概率生成白色球
+// 白色球概率按难度设置
+const WHITE_BALL_CHANCE = {
+    5: 0.05,  // 简单 5%
+    6: 0.03,  // 中等 3%
+    7: 0.01   // 困难 1%
+};
 
 // ==================== 音频系统 ====================
 class AudioManager {
@@ -181,7 +186,7 @@ class LinesGame {
     constructor() {
         this.state = this.createInitialState();
         this.moveHistory = [];
-        this.colorCount = parseInt(localStorage.getItem('lines-difficulty')) || 7;
+        this.colorCount = parseInt(localStorage.getItem('lines-difficulty')) || 5;
         this.initGame();
     }
 
@@ -207,9 +212,10 @@ class LinesGame {
 
     generateRandomBalls(count) {
         const balls = [];
+        const whiteChance = WHITE_BALL_CHANCE[this.colorCount] || 0.03;
         for (let i = 0; i < count; i++) {
-            // 15%概率生成白色万能球
-            if (Math.random() < WHITE_BALL_CHANCE) {
+            // 按难度设置的概率生成白色万能球
+            if (Math.random() < whiteChance) {
                 balls.push(CellColor.WHITE);
             } else {
                 balls.push(Math.floor(Math.random() * this.colorCount) + 1);
