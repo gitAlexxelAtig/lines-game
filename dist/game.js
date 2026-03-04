@@ -692,8 +692,9 @@ class GameRenderer {
     }
 
     drawSelection(x, y, size, color) {
-        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3'];
-        this.ctx.shadowColor = palette[color - 1];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#34495e'];
+        const c = palette[color - 1] || '#666';
+        this.ctx.shadowColor = c;
         this.ctx.shadowBlur = 30;
         this.ctx.strokeStyle = '#fff';
         this.ctx.lineWidth = 3;
@@ -704,8 +705,8 @@ class GameRenderer {
     }
 
     drawClassicBall(color, size) {
-        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3'];
-        const c = palette[color - 1];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#34495e'];
+        const c = palette[color - 1] || '#666';
         
         this.ctx.shadowColor = c;
         this.ctx.shadowBlur = 15;
@@ -728,8 +729,8 @@ class GameRenderer {
     }
 
     drawHorse(color, size) {
-        const colors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c'];
-        const bodyColor = colors[color - 1];
+        const colors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c', '#95a5a6', '#34495e'];
+        const bodyColor = colors[color - 1] || '#666';
         
         // 身体
         const grad = this.ctx.createRadialGradient(-size * 0.2, -size * 0.2, 0, 0, 0, size);
