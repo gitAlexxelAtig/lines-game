@@ -479,30 +479,6 @@ class GameRenderer {
             return d.life > 0;
         });
         
-        // 更新新球入场动画
-        this.spawnAnimations = this.spawnAnimations.filter(anim => {
-            const elapsed = now - anim.startTime;
-            // 如果还没到开始时间，保持scale为0
-            if (elapsed < 0) {
-                anim.scale = 0;
-                return true;
-            }
-            anim.progress = Math.min(elapsed / anim.duration, 1);
-            // 简单弹性效果：从0开始放大
-            const t = anim.progress;
-            if (t < 0.4) {
-                // 第一阶段：从0放大到1.1
-                anim.scale = (t / 0.4) * 1.1;
-            } else if (t < 0.7) {
-                // 第二阶段：回弹到0.95
-                anim.scale = 1.1 - ((t - 0.4) / 0.3) * 0.15;
-            } else {
-                // 第三阶段：稳定在1
-                anim.scale = 0.95 + ((t - 0.7) / 0.3) * 0.05;
-            }
-            return anim.progress < 1;
-        });
-        
         this.particles = this.particles.filter(p => {
             p.life -= 0.02;
             p.x += p.vx;
@@ -661,12 +637,59 @@ class GameRenderer {
         const y = row * this.cellSize + this.cellSize / 2;
         const baseSize = this.cellSize * 0.35;
         
-        // 检查是否有入场动画
-        const spawnAnim = this.spawnAnimations.find(a => a.row === row && a.col === col);
-        const scale = spawnAnim ? spawnAnim.scale : 1;
+        // 检查是否有入场动画（只对新球）
+        const spawnAnimIndex = this.spawnAnimations.findIndex(a => a.row === row && a.col === col);
+        let scale = 1;
+        
+        if (spawnAnimIndex !== -1) {
+            const anim = this.spawnAnimations[spawnAnimIndex];
+            const now = Date.now();
+            const elapsed = now - anim.startTime;
+            
+            // 如果动画已完成，从列表中移除
+            if (elapsed >= anim.duration) {
+                this.spawnAnimations.splice(spawnAnimIndex, 1);
+            } else if (elapsed >= 0) {
+                // 动画进行中
+                const t = elapsed / anim.duration;
+                if (t < 0.4) {
+                    scale = (t / 0.4) * 1.1;
+                } else if (t < 0.7) {
+                    scale = 1.1 - ((t - 0.4) / 0.3) * 0.15;
+                } else {
+                    scale = 0.95 + ((t - 0.7) / 0.3) * 0.05;
+                }
+            } else {
+                // 延迟期间不显示
+                return;
+            }
+        }
+        
         const size = baseSize * scale;
         
         const key = `${row},${col}`;
+        let anim = this.animations.get(key);
+        if (!anim) {
+            anim = {startTime: Date.now(), bounce: 0, scale: 1};
+            this.animations.set(key, anim);
+        }
+        
+        // 选中效果
+        if (this.selectedHorse && this.selectedHorse.row === row && this.selectedHorse.col === col) {
+            this.drawSelection(x, y, baseSize, color);
+        }
+        
+        this.ctx.save();
+        this.ctx.translate(x, y + anim.bounce * baseSize);
+        
+        if (this.currentSkin === 'classic') {
+            this.drawClassicBall(color, size);
+        } else {
+            this.drawHorse(color, size);
+        }
+        
+        this.ctx.restore();
+    }
         let anim = this.animations.get(key);
         if (!anim) {
             anim = {startTime: Date.now(), bounce: 0, scale: 1};
