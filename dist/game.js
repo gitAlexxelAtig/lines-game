@@ -690,28 +690,6 @@ class GameRenderer {
         
         this.ctx.restore();
     }
-        let anim = this.animations.get(key);
-        if (!anim) {
-            anim = {startTime: Date.now(), bounce: 0, scale: 1};
-            this.animations.set(key, anim);
-        }
-        
-        // 选中效果
-        if (this.selectedHorse && this.selectedHorse.row === row && this.selectedHorse.col === col) {
-            this.drawSelection(x, y, baseSize, color);
-        }
-        
-        this.ctx.save();
-        this.ctx.translate(x, y + anim.bounce * baseSize);
-        
-        if (this.currentSkin === 'classic') {
-            this.drawClassicBall(color, size);
-        } else {
-            this.drawHorse(color, size);
-        }
-        
-        this.ctx.restore();
-    }
 
     drawSelection(x, y, size, color) {
         const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3'];
