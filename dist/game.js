@@ -1141,18 +1141,8 @@ class GameController {
         this.game.initGame();
         this.renderer.deselectPiece();
         this.renderer.particles = [];
-        
-        // 为初始球添加入场动画
-        const initialBalls = [];
-        for (let r = 0; r < BOARD_SIZE; r++) {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                if (this.game.state.board[r][c] !== CellColor.EMPTY) {
-                    initialBalls.push({row: r, col: c});
-                }
-            }
-        }
-        this.renderer.addSpawnAnimation(initialBalls);
-        
+        this.renderer.spawnAnimations = []; // 清空入场动画
+        // 初始球不需要入场动画，它们已经存在了
         this.updateUI();
     }
 
