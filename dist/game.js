@@ -1,3 +1,379 @@
+/**
+ * 五子连珠 - 马年特别版 🐴
+ * 拟物风格小马主题 - 完整修复版
+ */
+
+// ==================== 常量定义 ====================
+const CellColor = {
+    EMPTY: 0,
+    RED: 1,     // 赤兔马
+    BLUE: 2,    // 蓝鬃马
+    GREEN: 3,   // 青骢马
+    YELLOW: 4,  // 金马
+    PURPLE: 5,  // 紫骍马
+    ORANGE: 6,  // 骅骝马
+    CYAN: 7     // 白龙马
+};
+
+const BOARD_SIZE = 9;
+const INITIAL_BALLS = 5;
+const BALLS_PER_TURN = 3;
+const MATCH_LENGTH = 5;
+
+const COLOR_PALETTE = {
+    [CellColor.EMPTY]: 'transparent',
+    [CellColor.RED]: '#e74c3c',
+    [CellColor.BLUE]: '#3498db',
+    [CellColor.GREEN]: '#27ae60',
+    [CellColor.YELLOW]: '#f1c40f',
+    [CellColor.PURPLE]: '#9b59b6',
+    [CellColor.ORANGE]: '#e67e22',
+    [CellColor.CYAN]: '#1abc9c'
+};
+
+const HORSE_NAMES = {
+    [CellColor.EMPTY]: '',
+    [CellColor.RED]: '赤兔',
+    [CellColor.BLUE]: '蓝鬃',
+    [CellColor.GREEN]: '青骢',
+    [CellColor.YELLOW]: '金马',
+    [CellColor.PURPLE]: '紫骍',
+    [CellColor.ORANGE]: '骅骝',
+    [CellColor.CYAN]: '白龙'
+};
+
+// ==================== 游戏逻辑类 ====================
+class LinesGame {
+    constructor() {
+        this.state = this.createInitialState();
+        this.moveHistory = [];
+        this.initGame();
+    }
+
+    createInitialState() {
+        const board = Array(BOARD_SIZE)
+            .fill(null)
+            .map(() => Array(BOARD_SIZE).fill(CellColor.EMPTY));
+
+        const nextBalls = this.generateRandomBalls(BALLS_PER_TURN);
+
+        return {
+            board,
+            score: 0,
+            nextBalls,
+            selectedBall: null,
+            gameOver: false
+        };
+    }
+
+    initGame() {
+        this.state = this.createInitialState();
+        this.moveHistory = [];
+
+        for (const color of this.generateRandomBalls(INITIAL_BALLS)) {
+            const pos = this.getRandomEmptyCell();
+            if (pos) {
+                this.state.board[pos.row][pos.col] = color;
+            }
+        }
+    }
+
+    generateRandomBalls(count) {
+        const balls = [];
+        for (let i = 0; i < count; i++) {
+            balls.push(Math.floor(Math.random() * 7) + 1);
+        }
+        return balls;
+    }
+
+    getRandomEmptyCell() {
+        const emptyCells = [];
+        for (let row = 0; row < BOARD_SIZE; row++) {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                if (this.state.board[row][col] === CellColor.EMPTY) {
+                    emptyCells.push({ row, col });
+                }
+            }
+        }
+
+        if (emptyCells.length === 0) return null;
+        return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    }
+
+    selectBall(pos) {
+        if (this.state.gameOver) return false;
+        if (this.state.board[pos.row][pos.col] === CellColor.EMPTY) return false;
+
+        this.state.selectedBall = pos;
+        return true;
+    }
+
+    findPath(start, end) {
+        if (this.state.board[end.row][end.col] !== CellColor.EMPTY) {
+            return null;
+        }
+
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        const queue = [start];
+        const visited = new Set();
+        const parent = new Map();
+
+        visited.add(`${start.row},${start.col}`);
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+
+            if (current.row === end.row && current.col === end.col) {
+                const path = [];
+                let curr = end;
+                while (curr) {
+                    path.unshift(curr);
+                    curr = parent.get(`${curr.row},${curr.col}`);
+                }
+                return path;
+            }
+
+            for (const [dr, dc] of directions) {
+                const newRow = current.row + dr;
+                const newCol = current.col + dc;
+
+                if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) continue;
+
+                const isTarget = newRow === end.row && newCol === end.col;
+                const isEmpty = this.state.board[newRow][newCol] === CellColor.EMPTY;
+
+                if (!isTarget && !isEmpty) continue;
+
+                const key = `${newRow},${newCol}`;
+                if (visited.has(key)) continue;
+
+                visited.add(key);
+                parent.set(key, current);
+                queue.push({ row: newRow, col: newCol });
+            }
+        }
+
+        return null;
+    }
+
+    moveBall(targetPos) {
+        if (!this.state.selectedBall) {
+            return { success: false };
+        }
+
+        this.moveHistory.push(JSON.parse(JSON.stringify(this.state)));
+        if (this.moveHistory.length > 3) {
+            this.moveHistory.shift();
+        }
+
+        const path = this.findPath(this.state.selectedBall, targetPos);
+        if (!path) {
+            return { success: false };
+        }
+
+        const color = this.state.board[this.state.selectedBall.row][this.state.selectedBall.col];
+        this.state.board[this.state.selectedBall.row][this.state.selectedBall.col] = CellColor.EMPTY;
+        this.state.board[targetPos.row][targetPos.col] = color;
+
+        const lines = this.checkLines(targetPos);
+
+        if (lines.length > 0) {
+            const eliminated = this.eliminateBalls(lines);
+            this.state.score += this.calculateScore(eliminated.length);
+
+            this.state.selectedBall = null;
+
+            if (this.checkGameOver()) {
+                this.state.gameOver = true;
+            }
+
+            return {
+                success: true,
+                eliminated,
+                score: this.state.score
+            };
+        } else {
+            const newBalls = this.spawnBalls();
+
+            this.state.selectedBall = null;
+
+            if (this.checkGameOver()) {
+                this.state.gameOver = true;
+            }
+
+            return {
+                success: true,
+                newBalls,
+                score: this.state.score
+            };
+        }
+    }
+
+    checkLines(pos) {
+        const color = this.state.board[pos.row][pos.col];
+        if (color === CellColor.EMPTY) return [];
+
+        const lines = [];
+
+        const dirPairs = [
+            [[-1, 0], [1, 0]],
+            [[0, -1], [0, 1]],
+            [[-1, -1], [1, 1]],
+            [[-1, 1], [1, -1]]
+        ];
+
+        for (const [dir1, dir2] of dirPairs) {
+            const line = [{ ...pos }];
+
+            let r = pos.row + dir1[0];
+            let c = pos.col + dir1[1];
+            while (
+                r >= 0 && r < BOARD_SIZE &&
+                c >= 0 && c < BOARD_SIZE &&
+                this.state.board[r][c] === color
+            ) {
+                line.push({ row: r, col: c });
+                r += dir1[0];
+                c += dir1[1];
+            }
+
+            r = pos.row + dir2[0];
+            c = pos.col + dir2[1];
+            while (
+                r >= 0 && r < BOARD_SIZE &&
+                c >= 0 && c < BOARD_SIZE &&
+                this.state.board[r][c] === color
+            ) {
+                line.push({ row: r, col: c });
+                r += dir2[0];
+                c += dir2[1];
+            }
+
+            if (line.length >= MATCH_LENGTH) {
+                lines.push(line);
+            }
+        }
+
+        return lines;
+    }
+
+    eliminateBalls(lines) {
+        const eliminated = new Set();
+
+        for (const line of lines) {
+            for (const pos of line) {
+                eliminated.add(`${pos.row},${pos.col}`);
+            }
+        }
+
+        const result = [];
+        for (const key of eliminated) {
+            const [row, col] = key.split(',').map(Number);
+            this.state.board[row][col] = CellColor.EMPTY;
+            result.push({ row, col });
+        }
+
+        return result;
+    }
+
+    calculateScore(count) {
+        const baseScore = count * 10;
+        let multiplier = 1;
+
+        if (count === 6) multiplier = 1.2;
+        else if (count === 7) multiplier = 1.5;
+        else if (count >= 8) multiplier = 2;
+
+        return Math.floor(baseScore * multiplier);
+    }
+
+    spawnBalls() {
+        const newBalls = [];
+        const emptyCells = [];
+
+        for (let row = 0; row < BOARD_SIZE; row++) {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                if (this.state.board[row][col] === CellColor.EMPTY) {
+                    emptyCells.push({ row, col });
+                }
+            }
+        }
+
+        for (let i = 0; i < BALLS_PER_TURN && emptyCells.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * emptyCells.length);
+            const pos = emptyCells.splice(randomIndex, 1)[0];
+            const color = this.state.nextBalls.shift() || this.generateRandomBalls(1)[0];
+
+            this.state.board[pos.row][pos.col] = color;
+            newBalls.push(pos);
+        }
+
+        while (this.state.nextBalls.length < BALLS_PER_TURN) {
+            this.state.nextBalls.push(this.generateRandomBalls(1)[0]);
+        }
+
+        return newBalls;
+    }
+
+    checkGameOver() {
+        const emptyCells = [];
+        const balls = [];
+
+        for (let row = 0; row < BOARD_SIZE; row++) {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                if (this.state.board[row][col] === CellColor.EMPTY) {
+                    emptyCells.push({ row, col });
+                } else {
+                    balls.push({ row, col });
+                }
+            }
+        }
+
+        if (emptyCells.length === 0) return true;
+
+        for (const ball of balls) {
+            for (const empty of emptyCells) {
+                if (this.findPath(ball, empty) !== null) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    undo() {
+        if (this.moveHistory.length === 0) return false;
+        this.state = this.moveHistory.pop();
+        return true;
+    }
+
+    getHint() {
+        const balls = [];
+        const emptyCells = [];
+
+        for (let row = 0; row < BOARD_SIZE; row++) {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                if (this.state.board[row][col] === CellColor.EMPTY) {
+                    emptyCells.push({ row, col });
+                } else {
+                    balls.push({ row, col });
+                }
+            }
+        }
+
+        for (const ball of balls) {
+            for (const empty of emptyCells) {
+                if (this.findPath(ball, empty) !== null) {
+                    return { from: ball, to: empty };
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
 // ==================== 小马渲染器 ====================
 class HorseRenderer {
     constructor(canvasId, game) {
@@ -9,8 +385,8 @@ class HorseRenderer {
         
         // 动画状态
         this.selectedHorse = null;
-        this.animations = new Map(); // 位置 -> 动画状态
-        this.particles = []; // 粒子效果
+        this.animations = new Map();
+        this.particles = [];
         
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -54,7 +430,6 @@ class HorseRenderer {
         return null;
     }
 
-    // ==================== 动画循环 ====================
     startAnimationLoop() {
         const loop = () => {
             this.updateAnimations();
@@ -67,7 +442,6 @@ class HorseRenderer {
     updateAnimations() {
         const now = Date.now();
         
-        // 更新选中动画
         if (this.selectedHorse) {
             const anim = this.animations.get(`${this.selectedHorse.row},${this.selectedHorse.col}`);
             if (anim) {
@@ -76,17 +450,15 @@ class HorseRenderer {
             }
         }
 
-        // 更新粒子
         this.particles = this.particles.filter(p => {
             p.life -= 0.02;
             p.x += p.vx;
             p.y += p.vy;
-            p.vy += 0.2; // 重力
+            p.vy += 0.2;
             return p.life > 0;
         });
     }
 
-    // ==================== 主渲染 ====================
     render() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawBackground();
@@ -96,7 +468,6 @@ class HorseRenderer {
     }
 
     drawBackground() {
-        // 木纹背景效果
         const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
         gradient.addColorStop(0, '#2d3436');
         gradient.addColorStop(0.5, '#3d3d3d');
@@ -104,7 +475,6 @@ class HorseRenderer {
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // 棋盘边框
         this.ctx.strokeStyle = '#d4af37';
         this.ctx.lineWidth = 4;
         this.ctx.strokeRect(2, 2, this.canvas.width - 4, this.canvas.height - 4);
@@ -129,7 +499,6 @@ class HorseRenderer {
         }
     }
 
-    // ==================== 绘制小马 ====================
     drawHorses() {
         for (let row = 0; row < BOARD_SIZE; row++) {
             for (let col = 0; col < BOARD_SIZE; col++) {
@@ -146,7 +515,6 @@ class HorseRenderer {
         const y = row * this.cellSize + this.cellSize / 2;
         const size = this.cellSize * 0.35;
         
-        // 获取动画状态
         const key = `${row},${col}`;
         let anim = this.animations.get(key);
         if (!anim) {
@@ -154,12 +522,10 @@ class HorseRenderer {
             this.animations.set(key, anim);
         }
 
-        // 选中效果 - 发光边框
         if (this.selectedHorse && this.selectedHorse.row === row && this.selectedHorse.col === col) {
             this.ctx.shadowColor = COLOR_PALETTE[color];
             this.ctx.shadowBlur = 30;
             
-            // 选中光环
             this.ctx.strokeStyle = '#fff';
             this.ctx.lineWidth = 3;
             this.ctx.beginPath();
@@ -167,15 +533,12 @@ class HorseRenderer {
             this.ctx.stroke();
         }
 
-        // 保存上下文
         this.ctx.save();
         
-        // 应用到小马的变换
         const bounceY = anim.bounce * size;
         this.ctx.translate(x, y + bounceY);
         this.ctx.scale(anim.scale, anim.scale);
 
-        // 绘制不同颜色的小马
         switch(color) {
             case CellColor.RED:
                 this.drawRedHorse(size);
@@ -204,17 +567,12 @@ class HorseRenderer {
         this.ctx.shadowBlur = 0;
     }
 
-    // ==================== 各色小马绘制 ====================
-    
-    // 赤兔马 - 红色，烈焰鬃毛
     drawRedHorse(size) {
         const bodyColor = '#c0392b';
         const maneColor = '#e74c3c';
         
-        // 身体
         this.drawHorseBody(size, bodyColor);
         
-        // 烈焰鬃毛效果
         this.ctx.fillStyle = maneColor;
         for (let i = 0; i < 5; i++) {
             const angle = -Math.PI / 2 + (i - 2) * 0.3;
@@ -232,18 +590,15 @@ class HorseRenderer {
             this.ctx.fill();
         }
         
-        // 眼睛
         this.drawEyes(size, '#fff');
     }
 
-    // 蓝鬃马 - 蓝色，波浪鬃毛
     drawBlueHorse(size) {
         const bodyColor = '#2980b9';
         const maneColor = '#3498db';
         
         this.drawHorseBody(size, bodyColor);
         
-        // 波浪鬃毛
         this.ctx.fillStyle = maneColor;
         this.ctx.beginPath();
         for (let i = 0; i < 3; i++) {
@@ -256,13 +611,11 @@ class HorseRenderer {
         this.drawEyes(size, '#fff');
     }
 
-    // 青骢马 - 绿色，竹叶装饰
     drawGreenHorse(size) {
         const bodyColor = '#27ae60';
         
         this.drawHorseBody(size, bodyColor);
         
-        // 竹叶装饰
         this.ctx.fillStyle = '#2ecc71';
         for (let i = 0; i < 3; i++) {
             const angle = -Math.PI / 3 + i * Math.PI / 6;
@@ -277,18 +630,15 @@ class HorseRenderer {
         this.drawEyes(size, '#fff');
     }
 
-    // 金马 - 金色，闪耀效果
     drawYellowHorse(size) {
         const bodyColor = '#f39c12';
         const shineColor = '#f1c40f';
         
-        // 发光效果
         this.ctx.shadowColor = shineColor;
         this.ctx.shadowBlur = 20;
         
         this.drawHorseBody(size, bodyColor);
         
-        // 金色鬃毛
         this.ctx.fillStyle = shineColor;
         this.ctx.beginPath();
         this.ctx.arc(0, -size * 0.5, size * 0.4, 0, Math.PI * 2);
@@ -298,11 +648,9 @@ class HorseRenderer {
         this.drawEyes(size, '#fff');
     }
 
-    // 紫骍马 - 紫色，神秘光环
     drawPurpleHorse(size) {
         const bodyColor = '#8e44ad';
         
-        // 神秘光环
         this.ctx.strokeStyle = '#9b59b6';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
@@ -311,7 +659,6 @@ class HorseRenderer {
         
         this.drawHorseBody(size, bodyColor);
         
-        // 星空鬃毛
         this.ctx.fillStyle = '#bb8fce';
         for (let i = 0; i < 6; i++) {
             const angle = (Date.now() / 1000 + i / 6) * Math.PI * 2;
@@ -330,13 +677,11 @@ class HorseRenderer {
         this.drawEyes(size, '#fff');
     }
 
-    // 骅骝马 - 橙色，火焰效果
     drawOrangeHorse(size) {
         const bodyColor = '#e67e22';
         
         this.drawHorseBody(size, bodyColor);
         
-        // 火焰尾巴效果
         this.ctx.fillStyle = '#f39c12';
         for (let i = 0; i < 4; i++) {
             const t = Date.now() / 300 + i;
@@ -350,11 +695,9 @@ class HorseRenderer {
         this.drawEyes(size, '#fff');
     }
 
-    // 白龙马 - 青色/白色，仙气效果
     drawCyanHorse(size) {
         const bodyColor = '#1abc9c';
         
-        // 仙气光环
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
         this.ctx.lineWidth = 1;
         for (let i = 0; i < 3; i++) {
@@ -366,7 +709,6 @@ class HorseRenderer {
         
         this.drawHorseBody(size, bodyColor);
         
-        // 白色鬃毛
         this.ctx.fillStyle = '#ecf0f1';
         this.ctx.beginPath();
         this.ctx.arc(0, -size * 0.5, size * 0.35, 0, Math.PI * 2);
@@ -375,9 +717,7 @@ class HorseRenderer {
         this.drawEyes(size, '#2c3e50');
     }
 
-    // ==================== 通用小马身体 ====================
     drawHorseBody(size, color) {
-        // 身体渐变
         const gradient = this.ctx.createRadialGradient(
             -size * 0.2, -size * 0.2, 0,
             0, 0, size
@@ -388,12 +728,10 @@ class HorseRenderer {
         
         this.ctx.fillStyle = gradient;
         
-        // 马头（椭圆形）
         this.ctx.beginPath();
         this.ctx.ellipse(0, -size * 0.1, size * 0.5, size * 0.6, 0, 0, Math.PI * 2);
         this.ctx.fill();
         
-        // 马耳
         this.ctx.beginPath();
         this.ctx.moveTo(-size * 0.3, -size * 0.5);
         this.ctx.lineTo(-size * 0.4, -size * 0.8);
@@ -406,7 +744,6 @@ class HorseRenderer {
         this.ctx.lineTo(size * 0.1, -size * 0.6);
         this.ctx.fill();
         
-        // 马嘴
         this.ctx.fillStyle = this.darkenColor(color, 30);
         this.ctx.beginPath();
         this.ctx.ellipse(0, size * 0.4, size * 0.25, size * 0.15, 0, 0, Math.PI * 2);
@@ -414,25 +751,21 @@ class HorseRenderer {
     }
 
     drawEyes(size, eyeColor) {
-        // 左眼
         this.ctx.fillStyle = eyeColor;
         this.ctx.beginPath();
         this.ctx.ellipse(-size * 0.2, -size * 0.2, size * 0.12, size * 0.15, 0, 0, Math.PI * 2);
         this.ctx.fill();
         
-        // 右眼
         this.ctx.beginPath();
         this.ctx.ellipse(size * 0.2, -size * 0.2, size * 0.12, size * 0.15, 0, 0, Math.PI * 2);
         this.ctx.fill();
         
-        // 瞳孔
         this.ctx.fillStyle = '#000';
         this.ctx.beginPath();
         this.ctx.arc(-size * 0.2, -size * 0.2, size * 0.06, 0, Math.PI * 2);
         this.ctx.arc(size * 0.2, -size * 0.2, size * 0.06, 0, Math.PI * 2);
         this.ctx.fill();
         
-        // 高光
         this.ctx.fillStyle = '#fff';
         this.ctx.beginPath();
         this.ctx.arc(-size * 0.15, -size * 0.25, size * 0.03, 0, Math.PI * 2);
@@ -440,7 +773,6 @@ class HorseRenderer {
         this.ctx.fill();
     }
 
-    // ==================== 粒子效果 ====================
     createEliminationParticles(positions) {
         for (const pos of positions) {
             const x = pos.col * this.cellSize + this.cellSize / 2;
@@ -493,7 +825,6 @@ class HorseRenderer {
         this.ctx.globalAlpha = 1;
     }
 
-    // ==================== 动画触发 ====================
     selectHorse(pos) {
         this.selectedHorse = pos;
         const key = `${pos.row},${pos.col}`;
@@ -508,7 +839,6 @@ class HorseRenderer {
         this.selectedHorse = null;
     }
 
-    // ==================== 工具函数 ====================
     lightenColor(color, percent) {
         const num = parseInt(color.replace('#', ''), 16);
         const amt = Math.round(2.55 * percent);
@@ -596,14 +926,10 @@ class GameController {
 
                 if (result.eliminated) {
                     this.renderer.createEliminationParticles(result.eliminated);
-                    // 播放消除音效
-                    this.playSound('eliminate');
                 }
 
                 if (result.newBalls) {
                     this.renderer.createSpawnParticles(result.newBalls);
-                    // 播放生成音效
-                    this.playSound('spawn');
                 }
 
                 this.updateUI();
@@ -652,7 +978,7 @@ class GameController {
         }
         if (highScoreEl) highScoreEl.textContent = Math.max(highScore, this.game.state.score).toString();
 
-        if (undoBtn) undoBtn.disabled = false;
+        if (undoBtn) undoBtn.disabled = this.game.moveHistory.length === 0;
     }
 
     updateNextBalls() {
@@ -666,17 +992,9 @@ class GameController {
             slot.style.backgroundColor = COLOR_PALETTE[color];
             slot.style.border = 'none';
             slot.style.boxShadow = `0 2px 8px ${COLOR_PALETTE[color]}40`;
-            
-            // 添加小马名字提示
             slot.title = HORSE_NAMES[color];
-            
             container.appendChild(slot);
         }
-    }
-
-    playSound(type) {
-        // 预留音效接口
-        // TODO: 添加 Web Audio API 音效
     }
 
     showGameOver() {
