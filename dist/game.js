@@ -310,7 +310,10 @@ class LinesGame {
                     targetColor = parseInt(c);
                 }
             }
-            if (!targetColor) return []; // 周围没有其他颜色，无法形成连珠
+            // 如果没有周围颜色，用白球自身匹配（白球之间可以连珠）
+            if (!targetColor) {
+                targetColor = CellColor.WHITE;
+            }
             
             // 用目标颜色检查连珠
             return this.checkLinesWithColor(pos, targetColor);
@@ -805,9 +808,16 @@ class GameRenderer {
         this.ctx.shadowBlur = 15;
         
         const grad = this.ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.5, c);
-        grad.addColorStop(1, this.darken(c, 30));
+        // 白色球保持纯白色
+        if (color === CellColor.WHITE) {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, '#ffffff');
+            grad.addColorStop(1, '#f0f0f0');
+        } else {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, c);
+            grad.addColorStop(1, this.darken(c, 30));
+        }
         
         this.ctx.fillStyle = grad;
         this.ctx.beginPath();
@@ -834,9 +844,16 @@ class GameRenderer {
         
         // 身体
         const grad = this.ctx.createRadialGradient(-size * 0.2, -size * 0.2, 0, 0, 0, size);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.5, bodyColor);
-        grad.addColorStop(1, this.darken(bodyColor, 20));
+        // 白色球保持纯白色，不需要渐变阴影
+        if (color === CellColor.WHITE) {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, '#ffffff');
+            grad.addColorStop(1, '#f0f0f0');
+        } else {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, bodyColor);
+            grad.addColorStop(1, this.darken(bodyColor, 20));
+        }
         
         this.ctx.fillStyle = grad;
         this.ctx.beginPath();
@@ -908,8 +925,16 @@ class GameRenderer {
         this.ctx.shadowBlur = 15;
         
         const grad = this.ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.5, c);
+        // 白色球保持纯白色
+        if (color === CellColor.WHITE) {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, '#ffffff');
+            grad.addColorStop(1, '#f0f0f0');
+        } else {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, c);
+            grad.addColorStop(1, this.darken(c, 30));
+        }
         grad.addColorStop(1, this.darken(c, 30));
         
         this.ctx.fillStyle = grad;
