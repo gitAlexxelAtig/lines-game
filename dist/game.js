@@ -1342,7 +1342,7 @@ class GameController {
                 
                 if (this.renderer.currentSkin === 'classic') {
                     // 经典球样式
-                    const c = palette[color - 1];
+                    const c = palette[color - 1] || '#fff';
                     ctx.shadowColor = c;
                     ctx.shadowBlur = 10;
                     
