@@ -483,16 +483,17 @@ class GameRenderer {
         this.spawnAnimations = this.spawnAnimations.filter(anim => {
             const elapsed = now - anim.startTime;
             anim.progress = Math.min(elapsed / anim.duration, 1);
-            // 弹性缓出效果（限制最大为1）
+            // 简单弹性效果：从0开始放大
             const t = anim.progress;
-            if (t === 0) {
-                anim.scale = 0;
-            } else if (t === 1) {
-                anim.scale = 1;
+            if (t < 0.4) {
+                // 第一阶段：从0放大到1.1
+                anim.scale = (t / 0.4) * 1.1;
+            } else if (t < 0.7) {
+                // 第二阶段：回弹到0.95
+                anim.scale = 1.1 - ((t - 0.4) / 0.3) * 0.15;
             } else {
-                // 弹性效果但不超过1
-                const elastic = Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI) / 3);
-                anim.scale = Math.min(1, 1 + elastic);
+                // 第三阶段：稳定在1
+                anim.scale = 0.95 + ((t - 0.7) / 0.3) * 0.05;
             }
             return anim.progress < 1;
         });
