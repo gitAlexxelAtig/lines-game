@@ -783,7 +783,7 @@ class GameRenderer {
     }
 
     drawSelection(x, y, size, color) {
-        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#34495e'];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
         const c = palette[color - 1] || '#666';
         this.ctx.shadowColor = c;
         this.ctx.shadowBlur = 30;
@@ -1012,7 +1012,7 @@ class GameRenderer {
     }
 
     createEliminationParticles(positions, colors) {
-        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3'];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
         
         for (let i = 0; i < positions.length; i++) {
             const pos = positions[i];
