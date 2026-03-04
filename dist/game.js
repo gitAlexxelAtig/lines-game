@@ -393,6 +393,7 @@ class GameRenderer {
         this.particles = [];
         this.movingHorse = null;
         this.pathDots = [];
+        this.spawnAnimations = []; // 新球入场动画
         
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -476,6 +477,16 @@ class GameRenderer {
             if (now < d.delay) return true;
             d.life -= 0.05;
             return d.life > 0;
+        });
+        
+        // 更新新球入场动画
+        this.spawnAnimations = this.spawnAnimations.filter(anim => {
+            const elapsed = now - anim.startTime;
+            anim.progress = Math.min(elapsed / anim.duration, 1);
+            // 弹性缓出效果
+            const t = anim.progress;
+            anim.scale = t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI) / 3) + 1;
+            return anim.progress < 1;
         });
         
         this.particles = this.particles.filter(p => {
@@ -634,7 +645,12 @@ class GameRenderer {
     drawPiece(row, col, color) {
         const x = col * this.cellSize + this.cellSize / 2;
         const y = row * this.cellSize + this.cellSize / 2;
-        const size = this.cellSize * 0.35;
+        const baseSize = this.cellSize * 0.35;
+        
+        // 检查是否有入场动画
+        const spawnAnim = this.spawnAnimations.find(a => a.row === row && a.col === col);
+        const scale = spawnAnim ? spawnAnim.scale : 1;
+        const size = baseSize * scale;
         
         const key = `${row},${col}`;
         let anim = this.animations.get(key);
@@ -645,11 +661,11 @@ class GameRenderer {
         
         // 选中效果
         if (this.selectedHorse && this.selectedHorse.row === row && this.selectedHorse.col === col) {
-            this.drawSelection(x, y, size, color);
+            this.drawSelection(x, y, baseSize, color);
         }
         
         this.ctx.save();
-        this.ctx.translate(x, y + anim.bounce * size);
+        this.ctx.translate(x, y + anim.bounce * baseSize);
         
         if (this.currentSkin === 'classic') {
             this.drawClassicBall(color, size);
@@ -893,6 +909,21 @@ class GameRenderer {
         }
     }
 
+    // 添加新球入场动画
+    addSpawnAnimation(positions) {
+        const now = Date.now();
+        for (const pos of positions) {
+            this.spawnAnimations.push({
+                row: pos.row,
+                col: pos.col,
+                startTime: now + Math.random() * 200, // 随机延迟，错开动画
+                duration: 600, // 动画时长
+                progress: 0,
+                scale: 0
+            });
+        }
+    }
+
     lighten(color, percent) {
         const num = parseInt(color.replace('#', ''), 16);
         const amt = Math.round(2.55 * percent);
@@ -1048,7 +1079,9 @@ class GameController {
                     this.renderer.audio.play('eliminate');
                 }
                 
+                // 新球入场动画
                 if (result.newBalls) {
+                    this.renderer.addSpawnAnimation(result.newBalls);
                     this.renderer.audio.play('spawn');
                 }
                 
@@ -1093,6 +1126,18 @@ class GameController {
         this.game.initGame();
         this.renderer.deselectPiece();
         this.renderer.particles = [];
+        
+        // 为初始球添加入场动画
+        const initialBalls = [];
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (this.game.state.board[r][c] !== CellColor.EMPTY) {
+                    initialBalls.push({row: r, col: c});
+                }
+            }
+        }
+        this.renderer.addSpawnAnimation(initialBalls);
+        
         this.updateUI();
     }
 
