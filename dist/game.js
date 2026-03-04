@@ -935,7 +935,6 @@ class GameRenderer {
             grad.addColorStop(0.5, c);
             grad.addColorStop(1, this.darken(c, 30));
         }
-        grad.addColorStop(1, this.darken(c, 30));
         
         this.ctx.fillStyle = grad;
         this.ctx.beginPath();
