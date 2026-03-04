@@ -419,20 +419,10 @@ class GameRenderer {
     getCellFromPoint(x, y) {
         const rect = this.canvas.getBoundingClientRect();
         
-        // 计算 CSS 显示尺寸与 Canvas 实际像素的缩放比例
-        // 这是修复触摸偏移的关键！
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-        
-        // 将 CSS 坐标转换为 Canvas 内部坐标
-        const cx = (x - rect.left) * scaleX;
-        const cy = (y - rect.top) * scaleY;
-        
-        const col = Math.floor(cx / this.cellSize);
-        const row = Math.floor(cy / this.cellSize);
-        
-        // 调试信息（生产环境可删除）
-        // console.log('Touch:', {x, y}, 'Canvas:', {cx, cy}, 'Cell:', {row, col}, 'Scale:', {scaleX, scaleY});
+        // 方法2：直接用比例计算（不受 DPR 影响）
+        // 将点击位置相对于 canvas 的比例，乘以格子数
+        const col = Math.floor(((x - rect.left) / rect.width) * BOARD_SIZE);
+        const row = Math.floor(((y - rect.top) / rect.height) * BOARD_SIZE);
         
         if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
             return {row, col};
