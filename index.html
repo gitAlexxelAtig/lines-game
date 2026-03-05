@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>五子连珠 - 马年大吉</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="version" content="1.7.1">
+    <meta name="version" content="1.8.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
@@ -22,7 +22,7 @@
                 <span id="score" class="value">0</span>
             </div>
             <div class="title">五子连珠</div>
-            <div class="version">v1.7.1</div>
+            <div class="version">v1.8.0</div>
             <div class="score-section">
                 <span class="label">最高分</span>
                 <span id="high-score" class="value">0</span>
@@ -48,7 +48,7 @@
         <div class="controls">
             <button id="btn-new-game" class="btn primary">新游戏</button>
             <button id="btn-undo" class="btn" disabled>撤销</button>
-            <button id="btn-hint" class="btn" disabled>提示</button>
+            <button id="btn-achievements" class="btn">🏆</button>
             <button id="btn-settings" class="btn">⚙️</button>
         </div>
     </div>
@@ -89,6 +89,34 @@
             <div class="settings-actions">
                 <button id="btn-close-settings" class="btn primary">完成</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 成就弹窗 -->
+    <div id="achievements-modal" class="modal hidden">
+        <div class="modal-content achievements-panel">
+            <h2>🏆 成就系统</h2>
+            <div class="achievements-progress">
+                <span id="achievement-count">0/12</span>
+                <div class="progress-bar">
+                    <div id="achievement-progress" class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div id="achievements-list" class="achievements-list">
+                <!-- 动态生成 -->
+            </div>
+            <div class="settings-actions">
+                <button id="btn-close-achievements" class="btn primary">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成就解锁通知 -->
+    <div id="achievement-notification" class="achievement-toast hidden">
+        <div class="achievement-toast-icon">🏆</div>
+        <div class="achievement-toast-content">
+            <div class="achievement-toast-title">成就解锁!</div>
+            <div id="achievement-toast-name" class="achievement-toast-name">--</div>
         </div>
     </div>
 

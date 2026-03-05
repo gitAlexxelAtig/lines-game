@@ -1235,15 +1235,139 @@ class GameRenderer {
     }
 }
 
+// ==================== 成就系统 ====================
+class AchievementSystem {
+    constructor() {
+        this.achievements = [
+            { id: 'first_elimination', name: '初次消除', desc: '完成首次5连珠消除', icon: '🎯', unlocked: false, condition: (stats) => stats.totalEliminations >= 1 },
+            { id: 'elimination_10', name: '消除新手', desc: '累计消除10个球', icon: '⭐', unlocked: false, condition: (stats) => stats.totalBallsEliminated >= 10 },
+            { id: 'elimination_50', name: '消除达人', desc: '累计消除50个球', icon: '💫', unlocked: false, condition: (stats) => stats.totalBallsEliminated >= 50 },
+            { id: 'elimination_100', name: '消除大师', desc: '累计消除100个球', icon: '👑', unlocked: false, condition: (stats) => stats.totalBallsEliminated >= 100 },
+            { id: 'long_line_6', name: '六连珠', desc: '完成一次6连珠消除', icon: '🔥', unlocked: false, condition: (stats) => stats.maxLineLength >= 6 },
+            { id: 'long_line_7', name: '七连珠', desc: '完成一次7连珠及以上消除', icon: '⚡', unlocked: false, condition: (stats) => stats.maxLineLength >= 7 },
+            { id: 'white_ball_master', name: '万能大师', desc: '使用万能白球完成消除10次', icon: '🌟', unlocked: false, condition: (stats) => stats.whiteBallEliminations >= 10 },
+            { id: 'high_score_1000', name: '千分突破', desc: '单局得分达到1000分', icon: '💎', unlocked: false, condition: (stats) => stats.maxScore >= 1000 },
+            { id: 'high_score_2000', name: '双倍千分', desc: '单局得分达到2000分', icon: '🏆', unlocked: false, condition: (stats) => stats.maxScore >= 2000 },
+            { id: 'undo_master', name: '后悔药', desc: '使用撤销功能5次', icon: '↩️', unlocked: false, condition: (stats) => stats.undoCount >= 5 },
+            { id: 'persistence', name: '坚持不懈', desc: '累计游玩10局', icon: '🎮', unlocked: false, condition: (stats) => stats.totalGames >= 10 },
+            { id: 'skin_collector', name: '收藏家', desc: '解锁所有皮肤', icon: '🎨', unlocked: false, condition: (stats) => stats.unlockedSkins >= 3 }
+        ];
+        this.stats = this.loadStats();
+        this.recentlyUnlocked = []; // 最近解锁的成就
+        this.loadAchievements();
+    }
+
+    loadStats() {
+        const saved = localStorage.getItem('lines-game-stats');
+        return saved ? JSON.parse(saved) : {
+            totalEliminations: 0,
+            totalBallsEliminated: 0,
+            maxLineLength: 0,
+            whiteBallEliminations: 0,
+            maxScore: 0,
+            undoCount: 0,
+            totalGames: 0,
+            unlockedSkins: 1
+        };
+    }
+
+    saveStats() {
+        localStorage.setItem('lines-game-stats', JSON.stringify(this.stats));
+    }
+
+    loadAchievements() {
+        const saved = localStorage.getItem('lines-achievements');
+        if (saved) {
+            const unlockedIds = JSON.parse(saved);
+            this.achievements.forEach(a => {
+                a.unlocked = unlockedIds.includes(a.id);
+            });
+        }
+    }
+
+    saveAchievements() {
+        const unlockedIds = this.achievements.filter(a => a.unlocked).map(a => a.id);
+        localStorage.setItem('lines-achievements', JSON.stringify(unlockedIds));
+    }
+
+    updateStats(key, value) {
+        if (typeof this.stats[key] === 'number') {
+            this.stats[key] += value;
+        } else {
+            this.stats[key] = value;
+        }
+        this.saveStats();
+        return this.checkAchievements();
+    }
+
+    setStat(key, value) {
+        if (key === 'maxLineLength' || key === 'maxScore') {
+            if (value > this.stats[key]) {
+                this.stats[key] = value;
+            }
+        } else {
+            this.stats[key] = value;
+        }
+        this.saveStats();
+        return this.checkAchievements();
+    }
+
+    checkAchievements() {
+        const newlyUnlocked = [];
+        this.achievements.forEach(achievement => {
+            if (!achievement.unlocked && achievement.condition(this.stats)) {
+                achievement.unlocked = true;
+                newlyUnlocked.push(achievement);
+                this.recentlyUnlocked.push(achievement);
+            }
+        });
+        if (newlyUnlocked.length > 0) {
+            this.saveAchievements();
+        }
+        return newlyUnlocked;
+    }
+
+    getUnlockedCount() {
+        return this.achievements.filter(a => a.unlocked).length;
+    }
+
+    getTotalCount() {
+        return this.achievements.length;
+    }
+
+    // 获取最近解锁的成就并清空
+    popRecentlyUnlocked() {
+        const recent = [...this.recentlyUnlocked];
+        this.recentlyUnlocked = [];
+        return recent;
+    }
+
+    // 生成成就面板HTML
+    generateAchievementHTML() {
+        return this.achievements.map(a => `
+            <div class="achievement-item ${a.unlocked ? 'unlocked' : 'locked'}">
+                <div class="achievement-icon">${a.unlocked ? a.icon : '🔒'}</div>
+                <div class="achievement-info">
+                    <div class="achievement-name">${a.name}</div>
+                    <div class="achievement-desc">${a.desc}</div>
+                </div>
+                ${a.unlocked ? '<div class="achievement-badge">✓</div>' : ''}
+            </div>
+        `).join('');
+    }
+}
+
 // ==================== 游戏控制器 ====================
 class GameController {
     constructor() {
         this.game = new LinesGame();
         this.renderer = new GameRenderer('game-canvas', this.game);
+        this.achievements = new AchievementSystem();
         
         this.initUI();
         this.initEventListeners();
         this.updateUI();
+        this.showAchievementNotifications();
     }
 
     initUI() {
@@ -1323,6 +1447,8 @@ class GameController {
         document.getElementById('btn-hint')?.addEventListener('click', () => this.showHint());
         document.getElementById('btn-settings')?.addEventListener('click', () => this.showSettings());
         document.getElementById('btn-close-settings')?.addEventListener('click', () => this.hideSettings());
+        document.getElementById('btn-achievements')?.addEventListener('click', () => this.showAchievements());
+        document.getElementById('btn-close-achievements')?.addEventListener('click', () => this.hideAchievements());
     }
 
     handleInput(clientX, clientY) {
@@ -1396,22 +1522,64 @@ class GameController {
         
         if (lines.length > 0) {
             const eliminatedColors = [];
+            let maxLineLength = 0;
+            let hasWhiteBall = false;
+            
             for (const line of lines) {
+                maxLineLength = Math.max(maxLineLength, line.length);
                 for (const pos of line) {
-                    eliminatedColors.push(this.game.state.board[pos.row][pos.col]);
+                    const color = this.game.state.board[pos.row][pos.col];
+                    eliminatedColors.push(color);
+                    if (color === CellColor.WHITE) {
+                        hasWhiteBall = true;
+                    }
                 }
             }
             
             const eliminated = this.game.eliminateBalls(lines);
             this.game.state.score += eliminated.length * 10;
             
+            // 更新成就统计
+            this.achievements.updateStats('totalEliminations', 1);
+            this.achievements.updateStats('totalBallsEliminated', eliminated.length);
+            this.achievements.setStat('maxLineLength', maxLineLength);
+            if (hasWhiteBall) {
+                this.achievements.updateStats('whiteBallEliminations', 1);
+            }
+            this.achievements.setStat('maxScore', this.game.state.score);
+            
             if (this.game.checkGameOver()) this.game.state.gameOver = true;
+            
+            this.checkAchievements();
             
             return {eliminated, eliminatedColors};
         } else {
             const result = this.game.spawnBalls();
+            
+            // 检查生成新球后是否有消除
+            if (result.eliminatedBalls && result.eliminatedBalls.length > 0) {
+                let hasWhiteBall = false;
+                let maxLineLength = 0;
+                
+                for (const ball of result.eliminatedBalls) {
+                    if (ball.color === CellColor.WHITE) {
+                        hasWhiteBall = true;
+                    }
+                }
+                
+                // 更新成就统计
+                this.achievements.updateStats('totalEliminations', 1);
+                this.achievements.updateStats('totalBallsEliminated', result.eliminatedBalls.length);
+                this.achievements.setStat('maxScore', this.game.state.score);
+                if (hasWhiteBall) {
+                    this.achievements.updateStats('whiteBallEliminations', 1);
+                }
+                
+                this.checkAchievements();
+            }
+            
             if (this.game.checkGameOver()) this.game.state.gameOver = true;
-            return result;  // 返回 {newBalls, eliminatedBalls}
+            return result;
         }
     }
 
@@ -1419,15 +1587,18 @@ class GameController {
         this.game.initGame();
         this.renderer.deselectPiece();
         this.renderer.particles = [];
-        this.renderer.spawnAnimations = []; // 清空入场动画
-        // 初始球不需要入场动画，它们已经存在了
+        this.renderer.spawnAnimations = [];
+        this.achievements.updateStats('totalGames', 1);
         this.updateUI();
+        this.checkAchievements();
     }
 
     undo() {
         if (this.game.undo()) {
             this.renderer.deselectPiece();
+            this.achievements.updateStats('undoCount', 1);
             this.updateUI();
+            this.checkAchievements();
         }
     }
 
@@ -1442,6 +1613,86 @@ class GameController {
 
     hideSettings() {
         document.getElementById('settings-modal')?.classList.add('hidden');
+    }
+
+    // ==================== 成就系统 ====================
+    
+    showAchievements() {
+        const modal = document.getElementById('achievements-modal');
+        const list = document.getElementById('achievements-list');
+        const count = document.getElementById('achievement-count');
+        const progress = document.getElementById('achievement-progress');
+        
+        if (list) {
+            list.innerHTML = this.achievements.generateAchievementHTML();
+        }
+        
+        if (count) {
+            count.textContent = `${this.achievements.getUnlockedCount()}/${this.achievements.getTotalCount()}`;
+        }
+        
+        if (progress) {
+            const percentage = (this.achievements.getUnlockedCount() / this.achievements.getTotalCount()) * 100;
+            progress.style.width = `${percentage}%`;
+        }
+        
+        modal?.classList.remove('hidden');
+    }
+    
+    hideAchievements() {
+        document.getElementById('achievements-modal')?.classList.add('hidden');
+    }
+    
+    showAchievementNotifications() {
+        const recent = this.achievements.popRecentlyUnlocked();
+        
+        if (recent.length > 0) {
+            let delay = 0;
+            recent.forEach(achievement => {
+                setTimeout(() => {
+                    this.showAchievementToast(achievement);
+                }, delay);
+                delay += 1500;
+            });
+        }
+    }
+    
+    showAchievementToast(achievement) {
+        const toast = document.getElementById('achievement-notification');
+        const nameEl = document.getElementById('achievement-toast-name');
+        const iconEl = toast?.querySelector('.achievement-toast-icon');
+        
+        if (nameEl) nameEl.textContent = achievement.name;
+        if (iconEl) iconEl.textContent = achievement.icon;
+        
+        toast?.classList.remove('hidden');
+        toast?.classList.add('show');
+        
+        setTimeout(() => {
+            toast?.classList.remove('show');
+            setTimeout(() => {
+                toast?.classList.add('hidden');
+            }, 300);
+        }, 3000);
+    }
+    
+    checkAchievements() {
+        const newlyUnlocked = this.achievements.checkAchievements();
+        if (newlyUnlocked.length > 0) {
+            let delay = 0;
+            newlyUnlocked.forEach(achievement => {
+                setTimeout(() => {
+                    this.showAchievementToast(achievement);
+                }, delay);
+                delay += 1500;
+            });
+            
+            // 如果成就面板打开，更新显示
+            const modal = document.getElementById('achievements-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+                this.showAchievements();
+            }
+        }
     }
 
     showGameOver() {
