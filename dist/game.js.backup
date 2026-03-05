@@ -787,7 +787,7 @@ class GameRenderer {
     }
 
     drawSelection(x, y, size, color) {
-        const palette = ['#e63946', '#1d3557', '#2a9d8f', '#e9c46a', '#9b5de5', '#f4a261', '#00b4d8', '#95a5a6', '#ffffff'];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
         const c = palette[color - 1] || '#666';
         this.ctx.shadowColor = c;
         this.ctx.shadowBlur = 30;
@@ -800,7 +800,7 @@ class GameRenderer {
     }
 
     drawClassicBall(color, size) {
-        const palette = ['#e63946', '#1d3557', '#2a9d8f', '#e9c46a', '#9b5de5', '#f4a261', '#00b4d8', '#95a5a6', '#ffffff'];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
         const c = palette[color - 1] || '#666';
         
         this.ctx.shadowColor = c;
@@ -838,7 +838,7 @@ class GameRenderer {
     }
 
     drawHorse(color, size) {
-        const colors = ['#c0392b', '#1d3557', '#27ae60', '#e9c46a', '#9b5de5', '#f4a261', '#1abc9c', '#95a5a6', '#ffffff'];
+        const colors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c', '#95a5a6', '#ffffff'];
         const bodyColor = colors[color - 1] || '#666';
         
         // 身体
@@ -916,7 +916,7 @@ class GameRenderer {
     }
 
     drawSmiley(color, size) {
-        const palette = ['#e63946', '#1d3557', '#2a9d8f', '#e9c46a', '#9b5de5', '#f4a261', '#00b4d8', '#95a5a6', '#ffffff'];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
         const c = palette[color - 1] || '#666';
         
         // 绘制球体背景
@@ -1154,7 +1154,7 @@ class GameRenderer {
     }
 
     createEliminationParticles(positions, colors) {
-        const palette = ['#e63946', '#1d3557', '#2a9d8f', '#e9c46a', '#9b5de5', '#f4a261', '#00b4d8', '#95a5a6', '#ffffff'];
+        const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
         
         for (let i = 0; i < positions.length; i++) {
             const pos = positions[i];
@@ -1468,7 +1468,7 @@ class GameController {
         const container = document.getElementById('next-balls');
         if (container) {
             container.innerHTML = '';
-            const palette = ['#e63946', '#1d3557', '#2a9d8f', '#e9c46a', '#9b5de5', '#f4a261', '#00b4d8', '#95a5a6', '#ffffff'];
+            const palette = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#8e44ad', '#e67e22', '#00d2d3', '#95a5a6', '#ffffff'];
             
             for (const color of this.game.state.nextBalls) {
                 const wrapper = document.createElement('div');
@@ -1550,7 +1550,7 @@ class GameController {
                     ctx.stroke();
                 } else {
                     // 马年马样式
-                    const horseColors = ['#c0392b', '#1d3557', '#27ae60', '#e9c46a', '#9b5de5', '#f4a261', '#1abc9c', '#95a5a6', '#ffffff'];
+                    const horseColors = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#e67e22', '#1abc9c', '#95a5a6', '#ffffff'];
                     const bodyColor = horseColors[color - 1];
                     
                     const grad = ctx.createRadialGradient(centerX - 4, centerY - 4, 0, centerX, centerY, radius);

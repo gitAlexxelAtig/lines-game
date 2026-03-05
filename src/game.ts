@@ -1,5 +1,5 @@
 /**
- * 五子连珠 - 核心游戏逻辑
+ * 五子连珠 - 核心游戏逻辑 v1.7.1
  * Lines Game Core Logic
  */
 
@@ -7,13 +7,14 @@
 
 enum CellColor {
     EMPTY = 0,
-    RED = 1,
-    BLUE = 2,
-    GREEN = 3,
-    YELLOW = 4,
-    PURPLE = 5,
-    ORANGE = 6,
-    CYAN = 7
+    RED = 1,      // 鲜红
+    BLUE = 2,     // 深蓝
+    GREEN = 3,    // 翠绿
+    YELLOW = 4,   // 明黄
+    PURPLE = 5,   // 紫罗兰
+    ORANGE = 6,   // 橙红（区别于黄色）
+    CYAN = 7,     // 青色
+    WHITE = 8     // 万能白色球
 }
 
 interface Position {
@@ -43,27 +44,40 @@ const INITIAL_BALLS = 5;
 const BALLS_PER_TURN = 3;
 const MATCH_LENGTH = 5;
 
+// 优化的颜色调色板 - 确保每种颜色都有明显区分
 const COLOR_PALETTE: Record<CellColor, string> = {
     [CellColor.EMPTY]: 'transparent',
-    [CellColor.RED]: '#ff4757',
-    [CellColor.BLUE]: '#3742fa',
-    [CellColor.GREEN]: '#2ed573',
-    [CellColor.YELLOW]: '#ffa502',
-    [CellColor.PURPLE]: '#8e44ad',
-    [CellColor.ORANGE]: '#e67e22',
-    [CellColor.CYAN]: '#00d2d3'
+    [CellColor.RED]: '#e63946',      // 鲜红 - 偏冷红
+    [CellColor.BLUE]: '#1d3557',     // 深蓝 - 海军蓝
+    [CellColor.GREEN]: '#2a9d8f',    // 翠绿 - 偏青绿
+    [CellColor.YELLOW]: '#e9c46a',   // 明黄 - 暖黄（与橙红区分明显）
+    [CellColor.PURPLE]: '#9b5de5',   // 紫罗兰 - 亮紫
+    [CellColor.ORANGE]: '#f4a261',   // 橙红 - 偏红的橙色（与黄色区分）
+    [CellColor.CYAN]: '#00b4d8',     // 青色 - 天蓝
+    [CellColor.WHITE]: '#ffffff'     // 纯白色 - 万能球
 };
 
-const COLOR_NAMES = [
+// 颜色名称
+const COLOR_NAMES: string[] = [
     'transparent',
-    '#ff4757',  // Red
-    '#3742fa',  // Blue
-    '#2ed573',  // Green
-    '#ffa502',  // Yellow
-    '#8e44ad',  // Purple
-    '#e67e22',  // Orange
-    '#00d2d3'   // Cyan
+    '#e63946',  // Red
+    '#1d3557',  // Blue
+    '#2a9d8f',  // Green
+    '#e9c46a',  // Yellow
+    '#9b5de5',  // Purple
+    '#f4a261',  // Orange
+    '#00b4d8',  // Cyan
+    '#ffffff'   // White (万能)
 ];
+
+// 难度配置
+const DIFFICULTY_CONFIG = {
+    easy: { colors: 5, whiteBallChance: 0.05 },    // 5色，5%白球
+    medium: { colors: 6, whiteBallChance: 0.03 },  // 6色，3%白球
+    hard: { colors: 7, whiteBallChance: 0.01 }     // 7色，1%白球
+};
+
+let currentDifficulty: keyof typeof DIFFICULTY_CONFIG = 'easy';
 
 // ==================== 游戏逻辑类 ====================
 
@@ -82,9 +96,6 @@ class LinesGame {
 
         const nextBalls = this.generateRandomBalls(BALLS_PER_TURN);
 
-        // 预生成初始球的颜色
-        const initialColors = this.generateRandomBalls(INITIAL_BALLS);
-
         return {
             board,
             score: 0,
@@ -92,6 +103,20 @@ class LinesGame {
             selectedBall: null,
             gameOver: false
         };
+    }
+
+    /**
+     * 设置难度
+     */
+    setDifficulty(difficulty: keyof typeof DIFFICULTY_CONFIG): void {
+        currentDifficulty = difficulty;
+    }
+
+    /**
+     * 获取当前难度
+     */
+    getDifficulty(): keyof typeof DIFFICULTY_CONFIG {
+        return currentDifficulty;
     }
 
     /**
@@ -111,12 +136,20 @@ class LinesGame {
     }
 
     /**
-     * 生成随机颜色数组
+     * 生成随机颜色数组 - 包含万能白球概率
      */
     private generateRandomBalls(count: number): CellColor[] {
         const balls: CellColor[] = [];
+        const config = DIFFICULTY_CONFIG[currentDifficulty];
+        
         for (let i = 0; i < count; i++) {
-            balls.push(Math.floor(Math.random() * 7) + 1 as CellColor);
+            // 按概率生成万能白球
+            if (Math.random() < config.whiteBallChance) {
+                balls.push(CellColor.WHITE);
+            } else {
+                // 在配置的颜色范围内随机
+                balls.push(Math.floor(Math.random() * config.colors) + 1 as CellColor);
+            }
         }
         return balls;
     }
@@ -227,7 +260,7 @@ class LinesGame {
         this.state.board[this.state.selectedBall.row][this.state.selectedBall.col] = CellColor.EMPTY;
         this.state.board[targetPos.row][targetPos.col] = color;
 
-        // 检测连珠
+        // 检测连珠（包含万能白球逻辑）
         const lines = this.checkLines(targetPos);
 
         if (lines.length > 0) {
@@ -267,7 +300,12 @@ class LinesGame {
     }
 
     /**
-     * 检测连珠
+     * 检测连珠 - 包含万能白球逻辑
+     * 
+     * 万能白球规则：
+     * 1. 白球可以与任何颜色匹配消除
+     * 2. 如果白球旁边有白球，它们也可以相互匹配
+     * 3. 检测时统计周围最多的颜色，白球可以作为该颜色的一部分
      */
     private checkLines(pos: Position): Position[][] {
         const color = this.state.board[pos.row][pos.col];
@@ -275,7 +313,7 @@ class LinesGame {
 
         const lines: Position[][] = [];
 
-        // 4组方向对（避免重复）
+        // 4组方向对
         const dirPairs = [
             [[-1, 0], [1, 0]],    // 竖直
             [[0, -1], [0, 1]],    // 水平
@@ -285,39 +323,70 @@ class LinesGame {
 
         for (const [dir1, dir2] of dirPairs) {
             const line: Position[] = [{ ...pos }];
+            const colorsInLine: CellColor[] = [color];
 
             // 向dir1方向扫描
             let r = pos.row + dir1[0];
             let c = pos.col + dir1[1];
-            while (
-                r >= 0 && r < BOARD_SIZE &&
-                c >= 0 && c < BOARD_SIZE &&
-                this.state.board[r][c] === color
-            ) {
-                line.push({ row: r, col: c });
-                r += dir1[0];
-                c += dir1[1];
+            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                const cellColor = this.state.board[r][c];
+                if (cellColor === CellColor.EMPTY) break;
+                
+                // 如果是白球，或者与起点颜色匹配，或者是白球起点
+                if (this.canMatch(color, cellColor)) {
+                    line.push({ row: r, col: c });
+                    colorsInLine.push(cellColor);
+                    r += dir1[0];
+                    c += dir1[1];
+                } else {
+                    break;
+                }
             }
 
             // 向dir2方向扫描
             r = pos.row + dir2[0];
             c = pos.col + dir2[1];
-            while (
-                r >= 0 && r < BOARD_SIZE &&
-                c >= 0 && c < BOARD_SIZE &&
-                this.state.board[r][c] === color
-            ) {
-                line.push({ row: r, col: c });
-                r += dir2[0];
-                c += dir2[1];
+            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                const cellColor = this.state.board[r][c];
+                if (cellColor === CellColor.EMPTY) break;
+                
+                if (this.canMatch(color, cellColor)) {
+                    line.push({ row: r, col: c });
+                    colorsInLine.push(cellColor);
+                    r += dir2[0];
+                    c += dir2[1];
+                } else {
+                    break;
+                }
             }
 
+            // 检查是否形成有效连线
             if (line.length >= MATCH_LENGTH) {
-                lines.push(line);
+                // 统计颜色数量，确保有有效匹配
+                const nonWhiteColors = colorsInLine.filter(c => c !== CellColor.WHITE);
+                const hasNonWhite = nonWhiteColors.length > 0;
+                
+                // 如果全是白球，也可以消除（白球之间可以相互匹配）
+                if (hasNonWhite || colorsInLine.every(c => c === CellColor.WHITE)) {
+                    lines.push(line);
+                }
             }
         }
 
         return lines;
+    }
+
+    /**
+     * 判断两个颜色是否可以匹配
+     * 白球可以与任何颜色匹配，白球之间也可以相互匹配
+     */
+    private canMatch(color1: CellColor, color2: CellColor): boolean {
+        // 如果都是白球，可以匹配
+        if (color1 === CellColor.WHITE && color2 === CellColor.WHITE) return true;
+        // 如果其中一个是白球，可以匹配
+        if (color1 === CellColor.WHITE || color2 === CellColor.WHITE) return true;
+        // 否则必须颜色相同
+        return color1 === color2;
     }
 
     /**
@@ -581,6 +650,12 @@ class GameRenderer {
         const y = row * this.cellSize + this.cellSize / 2;
         const radius = (this.cellSize * 0.4) * scale;
 
+        // 万能白球特殊绘制 - 带星星闪光效果
+        if (color === CellColor.WHITE) {
+            this.drawWhiteBall(x, y, radius);
+            return;
+        }
+
         // 外发光
         this.ctx.shadowColor = COLOR_PALETTE[color];
         this.ctx.shadowBlur = 10;
@@ -610,6 +685,79 @@ class GameRenderer {
             0,
             Math.PI * 2
         );
+        this.ctx.fill();
+    }
+
+    /**
+     * 绘制万能白球 - 带星星效果
+     */
+    private drawWhiteBall(x: number, y: number, radius: number): void {
+        // 白球外发光 - 彩虹色
+        const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, radius * 1.5);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.3)');
+        gradient.addColorStop(1, 'transparent');
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // 白球主体
+        this.ctx.shadowColor = '#ffffff';
+        this.ctx.shadowBlur = 15;
+
+        const ballGradient = this.ctx.createRadialGradient(
+            x - radius * 0.3, y - radius * 0.3, 0,
+            x, y, radius
+        );
+        ballGradient.addColorStop(0, '#ffffff');
+        ballGradient.addColorStop(0.7, '#f0f0f0');
+        ballGradient.addColorStop(1, '#d0d0d0');
+
+        this.ctx.fillStyle = ballGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // 绘制星星效果
+        this.ctx.shadowBlur = 0;
+        this.drawStar(x, y, radius * 0.4, 5);
+
+        // 高光
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.beginPath();
+        this.ctx.arc(
+            x - radius * 0.3,
+            y - radius * 0.3,
+            radius * 0.2,
+            0,
+            Math.PI * 2
+        );
+        this.ctx.fill();
+    }
+
+    /**
+     * 绘制星星
+     */
+    private drawStar(x: number, y: number, radius: number, points: number): void {
+        this.ctx.fillStyle = '#ffd700';
+        this.ctx.beginPath();
+        
+        for (let i = 0; i < points * 2; i++) {
+            const angle = (i * Math.PI) / points - Math.PI / 2;
+            const r = i % 2 === 0 ? radius : radius * 0.4;
+            const px = x + Math.cos(angle) * r;
+            const py = y + Math.sin(angle) * r;
+            
+            if (i === 0) {
+                this.ctx.moveTo(px, py);
+            } else {
+                this.ctx.lineTo(px, py);
+            }
+        }
+        
+        this.ctx.closePath();
         this.ctx.fill();
     }
 
@@ -814,7 +962,6 @@ class GameController {
     private showHint(): void {
         const hint = this.game.getHint();
         if (hint) {
-            // 可以在这里添加提示视觉效果
             console.log('提示:', hint);
         }
     }
@@ -837,7 +984,7 @@ class GameController {
         if (highScoreEl) highScoreEl.textContent = Math.max(highScore, this.game.state.score).toString();
 
         // 撤销按钮状态
-        if (undoBtn) undoBtn.disabled = false; // 简化处理
+        if (undoBtn) undoBtn.disabled = false;
     }
 
     /**
@@ -851,9 +998,27 @@ class GameController {
         for (const color of this.game.state.nextBalls) {
             const slot = document.createElement('div');
             slot.className = 'preview-slot';
-            slot.style.backgroundColor = COLOR_PALETTE[color];
-            slot.style.border = 'none';
-            slot.style.boxShadow = `0 2px 8px ${COLOR_PALETTE[color]}40`;
+            
+            // 万能白球在预览中显示为带金色边框的白色
+            if (color === CellColor.WHITE) {
+                slot.style.background = '#ffffff';
+                slot.style.border = '3px solid #ffd700';
+                slot.style.boxShadow = '0 0 10px #ffd700, inset 0 0 5px rgba(255, 215, 0, 0.3)';
+                
+                // 添加星星标记
+                const star = document.createElement('span');
+                star.textContent = '★';
+                star.style.color = '#ffd700';
+                star.style.fontSize = '16px';
+                star.style.position = 'absolute';
+                slot.style.position = 'relative';
+                slot.appendChild(star);
+            } else {
+                slot.style.backgroundColor = COLOR_PALETTE[color];
+                slot.style.border = 'none';
+                slot.style.boxShadow = `0 2px 8px ${COLOR_PALETTE[color]}40`;
+            }
+            
             container.appendChild(slot);
         }
     }
@@ -862,7 +1027,6 @@ class GameController {
      * 显示消除效果
      */
     private showEliminationEffect(positions: Position[]): void {
-        // 简单的闪烁效果
         const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
         const originalOpacity = canvas.style.opacity;
 
@@ -876,7 +1040,6 @@ class GameController {
      * 显示新球效果
      */
     private showNewBallsEffect(positions: Position[]): void {
-        // 新球生成效果（简化版）
         this.renderer.render();
     }
 
@@ -897,6 +1060,13 @@ class GameController {
     private hideGameOver(): void {
         const modal = document.getElementById('game-over-modal');
         if (modal) modal.classList.add('hidden');
+    }
+
+    /**
+     * 设置难度
+     */
+    setDifficulty(difficulty: keyof typeof DIFFICULTY_CONFIG): void {
+        this.game.setDifficulty(difficulty);
     }
 }
 

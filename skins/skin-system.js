@@ -101,13 +101,13 @@ class ClassicSkin extends Skin {
         
         this.colorPalette = {
             [CellColor.EMPTY]: 'transparent',
-            [CellColor.RED]: '#ff4757',
-            [CellColor.BLUE]: '#3742fa',
-            [CellColor.GREEN]: '#2ed573',
-            [CellColor.YELLOW]: '#ffa502',
-            [CellColor.PURPLE]: '#8e44ad',
-            [CellColor.ORANGE]: '#e67e22',
-            [CellColor.CYAN]: '#00d2d3'
+            [CellColor.RED]: '#e63946',      // 鲜红 - 偏冷红
+            [CellColor.BLUE]: '#1d3557',     // 深蓝 - 海军蓝
+            [CellColor.GREEN]: '#2a9d8f',    // 翠绿 - 偏青绿
+            [CellColor.YELLOW]: '#e9c46a',   // 明黄 - 暖黄
+            [CellColor.PURPLE]: '#9b5de5',   // 紫罗兰 - 亮紫
+            [CellColor.ORANGE]: '#f4a261',   // 橙红 - 偏红的橙色
+            [CellColor.CYAN]: '#00b4d8'      // 青色 - 天蓝
         };
 
         this.audioContext = null;
@@ -257,13 +257,13 @@ class HorseSkin extends Skin {
         
         this.colorPalette = {
             [CellColor.EMPTY]: 'transparent',
-            [CellColor.RED]: '#e74c3c',      // 赤兔
-            [CellColor.BLUE]: '#3498db',     // 蓝鬃
-            [CellColor.GREEN]: '#27ae60',    // 青骢
-            [CellColor.YELLOW]: '#f1c40f',   // 金马
-            [CellColor.PURPLE]: '#9b59b6',   // 紫骍
-            [CellColor.ORANGE]: '#e67e22',   // 骅骝
-            [CellColor.CYAN]: '#1abc9c'      // 白龙
+            [CellColor.RED]: '#c0392b',      // 赤兔 - 深红
+            [CellColor.BLUE]: '#1d3557',     // 蓝鬃 - 深蓝
+            [CellColor.GREEN]: '#27ae60',    // 青骢 - 翠绿
+            [CellColor.YELLOW]: '#e9c46a',   // 金马 - 暖黄
+            [CellColor.PURPLE]: '#9b5de5',   // 紫骍 - 亮紫
+            [CellColor.ORANGE]: '#f4a261',   // 骅骝 - 橙红
+            [CellColor.CYAN]: '#1abc9c'      // 白龙 - 青绿
         };
 
         this.horseNames = {
